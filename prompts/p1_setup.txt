@@ -1,0 +1,50 @@
+Create the project skeleton for a university lab assignment repository called "optimize-anything-assignment8". Python 3.10+. Do not implement any optimization algorithms yet; only create structure, templates and shared utilities.
+
+1. Top-level folder layout:
+   - README.md
+   - CHECKLIST.md
+   - FAILURE_LOG.md
+   - TOOL_COMPARISON.md
+   - requirements.txt
+   - .gitignore (Python, venv, __pycache__, .ipynb_checkpoints, build artifacts, .env, *.pyc)
+   - common/  (shared utilities)
+   - results/ (one subfolder per track: track_a ... track_j, each with a .gitkeep)
+   - tracks/ with subfolders: track_a_continuous, track_b_discrete, track_c_quantum_opt, track_d_submodular_parallel_distributed, track_e_case_study, track_f_compiler, track_g_xv6, track_h_dbms, track_i_quantum_algos_qml, track_j_software_eng. Each contains its own README.md (placeholder sections: Objective, Baseline, Formulation, Methods, How to run, Results, Correctness check, Limitations) and a tests/ subfolder with a .gitkeep.
+   - prompts/ with one subfolder per track (same names as above). Each subfolder gets a PROMPT_LOG.md from the template below.
+
+2. PROMPT_LOG.md template (repeat entry block for multiple prompts):
+   ## Entry N
+   - Date:
+   - Tool and model version:
+   - Original prompt:
+   - AI response / relevant excerpt:
+   - Revised prompt (if any):
+   - Resulting commit link:
+   - Verification note (done by the student):
+   - Chat export / screenshot filename:
+
+3. README.md must contain these sections with placeholders: Project overview, Repository structure, Setup instructions, Dependencies, How to run each track, Reproducibility (seeds, versions, hardware), AI Tools Register (markdown table with columns: Tool | Model version | Tracks | Dates | Kind of work), Commit convention (AI-assisted commits are prefixed [AI:tool-name], manual edits are prefixed [MANUAL]), Acknowledgements of external libraries.
+
+4. CHECKLIST.md: a markdown table with columns: Chapter 6 area | Method/technique | Experiment | Code location | Result | Status. Pre-fill rows (status "TODO") for every item in this list:
+   - Foundations: ML as optimization (parameters, loss, regularization), continuous vs discrete, convex vs non-convex, local minima/global minima/saddle points, basic quantum computing concepts, role of optimization in QML
+   - Continuous: GD, SGD, mini-batch SGD, Momentum, NAG, AdaGrad, RMSProp, Adam, Newton, Gauss-Newton, backpropagation, Fisher/diagonal/low-rank curvature approximations, Hessian-vector products, convergence for convex/strongly convex/non-convex, step-size and optimizer tuning, noisy objectives
+   - Discrete: Greedy, ILP, Branch-and-Bound, Dynamic programming, feature selection, QUBO and Ising (binary-to-spin conversion, penalty terms), Max-Cut
+   - Quantum optimization: QAOA, VQE, PQCs/QNNs, parameter-shift, SPSA, quantum natural gradient, Deutsch-Jozsa, Bernstein-Vazirani, Grover, QFT, QPE, Shor, quantum annealing, variational classifiers, quantum kernels, barren plateaus, finite-shot cost, hardware noise, QUBO embedding limits
+   - Submodular: diminishing returns, assumption testing, greedy selection, approximation guarantee conditions
+   - Parallel: load balancing, makespan, work stealing, locality, synchronization, communication overhead, data/model/pipeline parallelism, speedup, parallel efficiency, Amdahl, Gustafson
+   - Strategy selection
+   - Distributed/multi-task: FedAvg, MGDA, GradNorm
+
+5. FAILURE_LOG.md: template with a table (Case # | Track | What the AI got wrong | How it was detected | Fix | Lesson), with 3 empty rows.
+   TOOL_COMPARISON.md: template with a table comparing two AI tools on one task: Task | Tool | Correctness | Hallucinations | Speed | Prompt iterations needed.
+
+6. common/ module (Python package with __init__.py):
+   - seeding.py: set_global_seed(seed) for random, numpy, and torch if installed
+   - timing.py: a context manager and decorator that measure wall-clock time with time.perf_counter
+   - plotting.py: helper functions for saving line plots (convergence curves) and bar charts to results/<track>/ as PNG with labeled axes, units, legend
+   - stats.py: function to run a stochastic experiment N times with different seeds and return mean, std, min, max
+   - io_utils.py: save/load results as JSON and CSV
+
+7. requirements.txt: numpy, scipy, matplotlib, pandas, scikit-learn, torch, pytest, pulp, networkx, qiskit, qiskit-aer, pennylane. Pin nothing yet.
+
+Add docstrings and type hints to all code in common/.

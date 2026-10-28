@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
-import os
 import random
 import sys
 from typing import Optional
 
 
 def set_global_seed(seed: int = 42) -> None:
-    """Set the random seed across Python, NumPy, and PyTorch (if installed).
+    """Set the random seed across Python, NumPy, and optionally PyTorch.
 
-    Ensures repeatable stochastic behavior for benchmarks, initialization,
-    and optimization trajectory comparisons.
+    Seeds Python's built-in ``random`` module and NumPy unconditionally.
+
+    For PyTorch: this module **never** imports torch itself.  If the caller
+    has already imported torch (i.e. ``"torch"`` is present in
+    ``sys.modules``), ``torch.manual_seed`` and
+    ``torch.cuda.manual_seed_all`` are called inside a ``try/except`` so
+    that any attribute errors are silently ignored.  If torch has not been
+    imported by the caller, it is left untouched.
 
     Args:
         seed: The integer seed value to configure. Defaults to 42.
@@ -20,9 +25,6 @@ def set_global_seed(seed: int = 42) -> None:
     Returns:
         None
     """
-    # Python environment hash seed
-    os.environ["PYTHONHASHSEED"] = str(seed)
-
     # Standard library random
     random.seed(seed)
 
@@ -34,20 +36,12 @@ def set_global_seed(seed: int = 42) -> None:
     except (ImportError, Exception):
         pass
 
-    # PyTorch (if imported or installed)
+    # PyTorch — only if already present in sys.modules (imported by caller).
+    # This module never imports torch on its own.
     torch_mod = sys.modules.get("torch")
-    if torch_mod is None and os.environ.get("DISABLE_TORCH_SEEDING", "").lower() not in ("1", "true", "yes"):
-        try:
-            import torch as torch_mod
-        except (ImportError, Exception):
-            torch_mod = None
-
     if torch_mod is not None:
         try:
             torch_mod.manual_seed(seed)
-            if hasattr(torch_mod, "cuda") and torch_mod.cuda.is_available():
-                torch_mod.cuda.manual_seed_all(seed)
-                torch_mod.backends.cudnn.deterministic = True
-                torch_mod.backends.cudnn.benchmark = False
+            torch_mod.cuda.manual_seed_all(seed)
         except (AttributeError, Exception):
             pass

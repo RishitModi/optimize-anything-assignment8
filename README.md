@@ -165,7 +165,7 @@ All AI tool interactions used throughout the design, formulation, implementation
 
 | Tool | Model version | Tracks | Dates | Kind of work |
 | :--- | :--- | :--- | :--- | :--- |
-| Antigravity IDE | Claude Sonnet 5.5 | All (repository setup) | 2026-10-28 | Planning, code generation (repository skeleton, templates, shared utilities in common/) |
+| Antigravity IDE | Claude Sonnet 5.5 | All (setup), A | 2026-10-28 | Planning, code generation, refactoring, unit-test writing (repository skeleton, templates, shared utilities in common/, Track A continuous optimization) |
 | Antigravity IDE | Gemini 3.8 Flash | All Tracks | 2026-10-28 | Repository skeleton, templates, shared utilities |
 | [e.g., Claude] | [e.g., Claude 3.7 Sonnet] | [e.g., Track A, Track C] | [YYYY-MM-DD] | [e.g., Algorithm formulation, test generation] |
 | [e.g., ChatGPT] | [e.g., GPT-4o] | [e.g., Track B] | [YYYY-MM-DD] | [e.g., Debugging ILP formulations] |

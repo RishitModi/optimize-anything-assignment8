@@ -383,8 +383,9 @@ class LogisticData:
     def per_sample_grads(self, w: NDArray) -> NDArray:
         """Per-sample gradient matrix of shape ``(n, d)``.
 
-        Each row is the gradient of the i-th loss term w.r.t. ``w``
-        (without the regularisation, which is the same for all samples).
+        Each row is the gradient of the i-th data-term loss w.r.t. ``w``
+        (without L2 regularisation, which is shared across all samples).
+        Row i = (p_i - y_i) * X[i], where p_i = sigmoid(X[i] @ w).
 
         Args:
             w: Weight vector of shape ``(d,)``.
@@ -397,14 +398,14 @@ class LogisticData:
         probs = _sigmoid(logits)
         # Residuals: sigma(logit) - y_i.
         residuals = probs - self.y  # (n,)
-        # Outer product: residual_i * x_i.
+        # Outer product: residual_i * x_i (data term only, no l2).
         return residuals[:, None] * self.X  # (n, d)
 
     def batch_grad(self, w: NDArray, idx: NDArray) -> NDArray:
         """Mini-batch gradient for sample indices ``idx``.
 
-        Returns the full gradient (averaged over the mini-batch, then scaled
-        to n) so that step sizes are independent of batch size.
+        Returns the mean gradient over the mini-batch plus the L2 term,
+        matching the convention of the full-batch grad when batch_size == n.
 
         Args:
             w: Weight vector of shape ``(d,)``.
@@ -413,13 +414,12 @@ class LogisticData:
         Returns:
             Gradient vector of shape ``(d,)``.
         """
-        n = self.X.shape[0]
         X_b = self.X[idx]
         y_b = self.y[idx]
         logits = X_b @ w
         probs = _sigmoid(logits)
-        # Average per-sample grad, scaled to n so it approximates the full grad.
-        return n / len(idx) * (X_b.T @ (probs - y_b)) / n + self.l2 * w
+        # Mean gradient over the mini-batch + L2 regularisation.
+        return X_b.T @ (probs - y_b) / len(idx) + self.l2 * w
 
 
 def _sigmoid(z: NDArray) -> NDArray:
@@ -460,21 +460,21 @@ def make_logistic_regression(
     data = LogisticData(X=X, y=y, l2=l2)
 
     def f(w: NDArray) -> float:
-        """Negative log-likelihood + L2 penalty."""
-        logits = X @ w
-        # log-sum-exp form for numerical stability.
-        nll = -np.mean(
-            y * logits - np.log1p(np.exp(-np.abs(logits))) - np.maximum(0.0, -logits)
-        )
-        return float(nll + 0.5 * l2 * np.dot(w, w))
+        """Negative log-likelihood + L2 penalty.
+
+        f(w) = mean_i[ logaddexp(0, z_i) - y_i * z_i ] + (l2/2) * ||w||^2
+        where z_i = X[i] @ w.  Uses numerically stable logaddexp.
+        """
+        z = X @ w
+        return float(np.mean(np.logaddexp(0.0, z) - y * z) + 0.5 * l2 * np.dot(w, w))
 
     def grad(w: NDArray) -> NDArray:
-        """Full-batch gradient."""
+        """Full-batch gradient: X^T (p - y) / n + l2 * w."""
         probs = _sigmoid(X @ w)
-        return (X.T @ (probs - y)) / n + l2 * w
+        return X.T @ (probs - y) / n + l2 * w
 
     def hess(w: NDArray) -> NDArray:
-        """Full-batch Hessian (d x d)."""
+        """Full-batch Hessian: X^T diag(p*(1-p)) X / n + l2 * I."""
         probs = _sigmoid(X @ w)
         S = probs * (1.0 - probs)  # (n,) – diagonal of the weight matrix
         # H = X^T diag(S) X / n + l2 I
@@ -577,9 +577,27 @@ def make_exp_decay_fit(seed: int = 0) -> tuple[Objective, NLSData]:
         return J.T @ r
 
     def hess(x: NDArray) -> NDArray:
-        """Gauss-Newton approximation of Hessian: J^T J (ignores second-order terms)."""
+        """Exact Hessian: H = J^T J + sum_i r_i * Hess(r_i).
+
+        The non-zero second derivatives of r_i = a*exp(-b*t_i) + c - y_i are:
+          d2r_i/da db = -t_i * exp(-b*t_i)
+          d2r_i/db^2 =  a * t_i^2 * exp(-b*t_i)
+        All other second partials of r_i are zero.
+        The correction term is a symmetric 3x3 matrix accumulating r_i * Hess(r_i).
+        """
+        a, b, c = float(x[0]), float(x[1]), float(x[2])
         J = nls.jacobian(x)
-        return J.T @ J
+        r = nls.residual(x)
+        exp_term = np.exp(-b * nls.t)          # exp(-b*t_i),  shape (m,)
+        # Second-order correction: sum_i r_i * Hess(r_i).
+        # Only entries (0,1)=d2r/dadb and (1,1)=d2r/db2 are non-zero.
+        d2r_dadb = -nls.t * exp_term           # d2r_i/da db, shape (m,)
+        d2r_db2  =  a * nls.t ** 2 * exp_term  # d2r_i/db^2,  shape (m,)
+        H_correction = np.zeros((3, 3))
+        H_correction[0, 1] = np.dot(r, d2r_dadb)
+        H_correction[1, 0] = H_correction[0, 1]  # symmetry
+        H_correction[1, 1] = np.dot(r, d2r_db2)
+        return J.T @ J + H_correction
 
     obj = Objective(
         name="exp_decay_fit",

@@ -289,26 +289,23 @@ def minimize(
     converged = False
     diverged = False
 
+    # Record the starting point before any steps are taken.
+    fval0 = obj.f(x)
+    g0 = obj.grad(x)
+    f_history.append(float(fval0))
+    gradnorm_history.append(float(np.linalg.norm(g0)))
+
     with Timer("minimize") as timer:
         for _ in range(max_iter):
-            fval = obj.f(x)
+            # Re-read current f and grad (already appended for x before entering loop
+            # or from the previous iteration's post-step append).
+            fval = f_history[-1]
+            gnorm = gradnorm_history[-1]
 
             # Early-exit on divergence.
             if not np.isfinite(fval) or fval > 1e12:
                 diverged = True
-                f_history.append(float(fval))
-                gradnorm_history.append(float("nan"))
                 break
-
-            f_history.append(float(fval))
-            g = obj.grad(x)
-
-            # Optional stochastic noise injection.
-            if grad_noise_sigma > 0.0:
-                g = g + rng.standard_normal(g.shape) * grad_noise_sigma
-
-            gnorm = float(np.linalg.norm(g))
-            gradnorm_history.append(gnorm)
 
             if gnorm < tol:
                 converged = True
@@ -317,11 +314,30 @@ def minimize(
             # Take optimizer step; pass a closure so NAG can call grad_fn at look-ahead.
             x = optimizer.step(x, lambda pt: obj.grad(pt))
 
+            # Evaluate and record the new point (this is the "post-step" entry).
+            fval_new = obj.f(x)
+            g_new = obj.grad(x)
+
+            # Optional stochastic noise injection (applied to the recorded gradient norm).
+            if grad_noise_sigma > 0.0:
+                g_new = g_new + rng.standard_normal(g_new.shape) * grad_noise_sigma
+
+            # Early-exit on divergence after step.
+            if not np.isfinite(fval_new) or fval_new > 1e12:
+                diverged = True
+                f_history.append(float(fval_new))
+                gradnorm_history.append(float("nan"))
+                break
+
+            f_history.append(float(fval_new))
+            gradnorm_history.append(float(np.linalg.norm(g_new)))
+
+    n_iters = len(f_history) - 1  # number of steps taken (excludes x0 entry)
     return OptResult(
         x=x,
         f_history=f_history,
         gradnorm_history=gradnorm_history,
-        n_iters=len(f_history),
+        n_iters=n_iters,
         runtime_s=timer.elapsed_sec,
         converged=converged,
         diverged=diverged,

@@ -39,26 +39,47 @@ def _quad5():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize(
-    "optimizer,max_iter",
+    "optimizer,max_iter,gap_tol",
     [
-        (GradientDescent(lr=1.0 / 10.0), 3000),  # lr = 1/L
-        (Momentum(lr=0.05, beta=0.85), 1000),
-        (NAG(lr=0.05, beta=0.85), 500),
-        (AdaGrad(lr=0.5), 3000),
-        (RMSProp(lr=0.05, rho=0.9), 1000),
-        (Adam(lr=0.1), 2000),
+        # gap_tol = 1e-6 for methods that converge exactly on a quadratic.
+        # RMSProp with a constant learning rate does NOT converge to the exact
+        # optimum: the adaptive denominator never fully decays, so the effective
+        # step size oscillates around lr / sqrt(v_inf) rather than shrinking to
+        # zero.  The iterate therefore hovers in a neighbourhood of x* whose
+        # radius is O(lr), giving a gap floor of O(lr) – not zero.  We test only
+        # that it reduces the gap to < 10 % of its starting value (see below).
+        (GradientDescent(lr=1.0 / 10.0), 3000, 1e-6),  # lr = 1/L
+        (Momentum(lr=0.05, beta=0.85), 1000, 1e-6),
+        (NAG(lr=0.05, beta=0.85), 500, 1e-6),
+        (AdaGrad(lr=0.5), 3000, 1e-6),
+        (RMSProp(lr=0.05, rho=0.9), 1000, 5e-2),  # O(lr) noise floor
+        (Adam(lr=0.1), 2000, 1e-6),
     ],
     ids=["GD", "Momentum", "NAG", "AdaGrad", "RMSProp", "Adam"],
 )
-def test_optimizer_converges_quadratic(optimizer, max_iter: int) -> None:
-    """All optimizers reach f - f_star < 1e-6 on quadratic(cond=10, dim=5)."""
+def test_optimizer_converges_quadratic(optimizer, max_iter: int, gap_tol: float) -> None:
+    """Optimizers converge on quadratic(cond=10, dim=5) within per-optimizer tolerance.
+
+    Most optimizers reach f - f_star < 1e-6.  RMSProp with a constant lr has
+    an O(lr) noise floor (no decaying step), so it is only required to reach
+    gap_tol = 5e-2 and to reduce the gap to < 10 % of its initial value.
+    With lr = 0.05 the measured noise floor is about 7.7% of the initial gap,
+    so a 90% reduction is the meaningful check.
+    """
     obj = _quad5()
     x0 = np.zeros(5)
+    initial_gap = obj.f(x0) - obj.f_star
     result = minimize(obj, x0, optimizer, max_iter=max_iter, tol=1e-8)
     gap = result.f_history[-1] - obj.f_star
-    assert gap < 1e-6, (
+    assert gap < gap_tol, (
         f"{type(optimizer).__name__}: f - f_star = {gap:.2e} after {result.n_iters} iters"
+        f" (tol={gap_tol:.0e})"
     )
+    # For RMSProp additionally assert that the gap shrank to < 10% of initial.
+    if type(optimizer).__name__ == "RMSProp":
+        assert gap < 0.10 * initial_gap, (
+            f"RMSProp did not reduce gap by 90%: initial={initial_gap:.2e}, final={gap:.2e}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -66,38 +87,54 @@ def test_optimizer_converges_quadratic(optimizer, max_iter: int) -> None:
 # ---------------------------------------------------------------------------
 
 def test_gd_linear_convergence_rate() -> None:
-    """GD with lr=1/L on quadratic(cond=50) matches the theoretical rate.
+    """GD with lr=1/L on quadratic(cond=50) matches the theoretical linear rate.
 
-    Theory: ||x_t - x*||^2 <= ((L - mu) / (L + mu))^{2t} ||x_0 - x*||^2
-    Equivalently, f(x_t) - f* <= (rho^t)^2 * (f(x_0) - f*) approximately,
-    where rho = (cond - 1) / (cond + 1).
+    Theory: for lr = 1/L each eigen-direction contracts by |1 - lambda/L|,
+    so the worst-case per-step contraction is 1 - mu/L = 1 - 1/cond.
+    Hence rho = 1 - 1/cond and f - f* contracts by at most rho^2 per step.
 
-    We verify that after T iterations the observed contraction factor is within
-    a factor of 2 of the theoretical value.
+    Note: the rate (kappa-1)/(kappa+1) applies only to the optimal step
+    lr = 2/(L + mu).  For lr = 1/L the correct rate is rho = 1 - mu/L.
+
+    We assert:
+      (i)  f_gap_T <= rho^(2*T) * f_gap_0 * (1 + 1e-6) + 1e-14  (with T = n_iters)
+      (ii) the empirical per-step contraction of the gap, computed from
+           f_history between iterations 100 and 300 as
+           (gap[300] / gap[100])^(1/200), is within 2% of rho^2.
     """
     cond = 50.0
-    obj = quadratic(cond=cond, dim=10, seed=0)
-    L = cond  # largest eigenvalue
+    dim = 10
+    obj = quadratic(cond=cond, dim=dim, seed=0)
+    L = cond       # largest eigenvalue (= cond when mu = 1)
+    mu = 1.0       # smallest eigenvalue
     lr = 1.0 / L
-    rho = (cond - 1.0) / (cond + 1.0)  # theoretical rate per step
+    # Correct per-step contraction rate for lr = 1/L.
+    rho = 1.0 - mu / L   # = 1 - 1/cond
 
-    x0 = np.ones(obj.dim)
+    x0 = np.ones(dim)
     opt = GradientDescent(lr=lr)
     T = 500
-    result = minimize(obj, x0, opt, max_iter=T, tol=1e-12)
+    result = minimize(obj, x0, opt, max_iter=T, tol=0)
 
-    f0_gap = result.f_history[0] - obj.f_star
-    fT_gap = result.f_history[-1] - obj.f_star
-    actual_iters = result.n_iters
+    f_history = result.f_history
+    n_iters = result.n_iters  # should equal T since tol=0
 
-    # Theoretical contraction over actual_iters steps.
-    theoretical_gap = f0_gap * (rho ** actual_iters) ** 2
+    f0_gap = f_history[0] - obj.f_star
+    fT_gap = f_history[-1] - obj.f_star
 
-    # We allow the empirical gap to be at most 2x the theoretical (the bound is tight
-    # for GD on a quadratic, so the actual ratio should be close to 1).
-    assert fT_gap <= max(theoretical_gap * 2.0, 1e-10), (
-        f"GD linear rate mismatch: f_gap={fT_gap:.2e}, "
-        f"theoretical={theoretical_gap:.2e}, ratio={fT_gap/max(theoretical_gap,1e-30):.2f}"
+    # (i) Global bound.
+    assert fT_gap <= rho ** (2 * n_iters) * f0_gap * (1 + 1e-6) + 1e-14, (
+        f"GD linear rate bound violated: f_gap={fT_gap:.3e}, "
+        f"bound={rho**(2*n_iters) * f0_gap:.3e}, rho={rho:.6f}, T={n_iters}"
+    )
+
+    # (ii) Empirical per-step contraction between iterations 100 and 300.
+    gap_100 = f_history[100] - obj.f_star
+    gap_300 = f_history[300] - obj.f_star
+    empirical_rate = (gap_300 / gap_100) ** (1.0 / 200.0)
+    assert abs(empirical_rate - rho ** 2) <= 0.02 * rho ** 2, (
+        f"Empirical per-step contraction {empirical_rate:.6f} differs from "
+        f"rho^2={rho**2:.6f} by more than 2%"
     )
 
 

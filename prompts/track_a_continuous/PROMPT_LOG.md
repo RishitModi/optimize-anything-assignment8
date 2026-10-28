@@ -98,6 +98,40 @@ All files created. Here's a summary of everything produced:
 - All randomness uses `np.random.default_rng(seed)`, never the legacy `np.random` global state
 
 - Revised prompt (if any): 
+STRICT RULES FOR THIS TASK: Do NOT run any command, script, test, python, pip, git or shell command. Do NOT create scratch or test scripts anywhere. Do NOT install anything. Do NOT use torch. Edit only the files named below with file edit tools, and change only the functions named. Do not touch common/.
+
+A. tracks/track_a_continuous/first_order.py, function minimize():
+Bug: f_history and gradnorm_history currently have max_iter entries instead of n_iters + 1. Required behaviour: f_history[0] and gradnorm_history[0] are the values at x0, and one more entry is appended after every executed step, including the final step, whichever way the loop ends (tolerance reached, max_iter reached or divergence). So len(f_history) == n_iters + 1 always. Find the cause (likely the final step's value is not recorded, or the history is appended before the update) and fix it. Check that minimize_stochastic is unaffected.
+
+B. tracks/track_a_continuous/landscapes.py, make_exp_decay_fit():
+Use r_i = a*exp(-b*t_i) + c - y_i, f = 0.5*sum(r_i^2). The Jacobian rows are [exp(-b t_i), -a t_i exp(-b t_i), 1]. The gradient is J^T r. The exact Hessian is H = J^T J + sum_i r_i * Hess(r_i), where the only non-zero second derivatives of r_i are d2r/dadb = -t_i exp(-b t_i) and d2r/db2 = a t_i^2 exp(-b t_i). Rewrite the hess function exactly per these formulas (symmetric 3x3) and make sure grad, residual and jacobian use the same sign convention.
+
+C. tracks/track_a_continuous/landscapes.py, make_logistic_regression():
+Enforce one single convention in f, grad, hess, per_sample_grads and batch_grad, with labels y in {0,1}, z = X @ w, p = sigmoid(z):
+  f(w) = mean_i[ logaddexp(0, z_i) - y_i * z_i ] + (l2/2) * ||w||^2   (use numerically stable logaddexp)
+  grad(w) = X^T (p - y) / n + l2 * w
+  hess(w) = X^T diag(p*(1-p)) X / n + l2 * I
+  batch_grad(w, idx) = X[idx]^T (p[idx] - y[idx]) / len(idx) + l2 * w
+  per_sample_grads(w): row i = (p_i - y_i) * X[i] (data-term only, no l2); add a docstring line stating this.
+Check that the generated labels are in {0,1}, not {-1,+1}, and that nothing else in the function uses a different scaling (sum vs mean) or a different regularisation factor. Do not modify any test for this item.
+
+D. tracks/track_a_continuous/tests/test_first_order.py:
+1. test_optimizer_converges_quadratic: change the parametrization to (optimizer, max_iter, gap_tol). Use gap_tol = 1e-6 for GD, Momentum, NAG, AdaGrad and Adam, and gap_tol = 5e-2 for RMSProp. Add a comment explaining that RMSProp with a constant learning rate has no decaying step, so it hovers in a neighbourhood of the optimum whose size is O(lr) instead of converging exactly. Also assert for RMSProp that the final gap is below 1% of the initial gap.
+2. test_gd_linear_convergence_rate: rewrite it. For lr = 1/L, every eigen-direction contracts by |1 - lambda/L| <= 1 - mu/L, so the correct rate is rho = 1 - 1/cond (mu = 1, L = cond), and f - f_star contracts by at most rho^2 per step. Use cond=50, dim=10, x0 = ones, max_iter=500, tol=0 so it runs all iterations. Assert (i) f_gap_T <= rho**(2*T) * f_gap_0 * (1 + 1e-6) + 1e-14, using T = n_iters; (ii) the empirical per-step contraction of the gap, computed from f_history between iterations 100 and 300 as (gap[300]/gap[100])**(1/200), is within 2% of rho**2. Fix the docstring to state the correct theory and mention that (kappa-1)/(kappa+1) applies only to lr = 2/(L+mu).
+
+E. FAILURE_LOG.md (repository root):
+Replace the three empty template rows of the table with the five rows below and keep the existing column headers (Case # | Track | What the AI got wrong | How it was detected | Fix | Lesson). Keep the text as given. Do not change any other section of the file.
+1 | A | Test for gradient descent with lr = 1/L used the contraction rate (kappa-1)/(kappa+1), which is only correct for the optimal step 2/(L+mu). | pytest failure: observed gap 8.4e-10 versus predicted 5.9e-16. | Used rho = 1 - mu/L and also checked the empirical per-step contraction. | The AI recalls textbook formulas without checking their step-size assumptions; verify theory against the exact setting.
+2 | A | Test expected RMSProp with a constant learning rate to reach f - f* < 1e-6 on a quadratic. | pytest failure: gap stayed at 1.45e-2, matching the O(lr) oscillation floor for lr = 0.05. | Per-optimizer tolerance plus a comment explaining the noise floor. | A test must encode the method's real behaviour, not an assumption that every optimizer converges exactly.
+3 | A | minimize() returned max_iter history entries instead of n_iters + 1, dropping the final iterate. | pytest failure: stochastic full-batch run had 20 entries versus 19 for the GD run (off-by-one). | History now records the starting point and every executed step. | Off-by-one errors in logging code silently corrupt convergence plots; test sequence lengths explicitly.
+4 | A | Analytic Hessian of the nonlinear least-squares exp-decay objective disagreed with the finite-difference Hessian in the entries involving parameter b. | pytest failure: Hessian test, e.g. entry [1,1] was 48.2 analytic versus 18.8 numeric. | Rewrote the Hessian as J^T J + sum r_i * Hess(r_i) with the exact second derivatives. | AI-derived second derivatives are error-prone; always check them against finite differences.
+5 | A | Analytic logistic-regression gradient disagreed with the finite-difference gradient of its own loss in every component. | pytest failure: all 5 gradient components mismatched. | Enforced one convention (labels in {0,1}, mean loss, l2/2 regularisation) across f, grad, hess and batch gradients. | The AI can leave a loss and its gradient written under different conventions; gradient checks catch this immediately.
+
+Do not edit any other README, CHECKLIST.md or prompt log.
+
+F. README.md (repository root), "AI Tools Register" table only:
+Add or extend the single row for Antigravity IDE / Claude Sonnet 5.5 so that Tracks includes "A", Dates includes 2026-10-28, and Kind of work includes "debugging, test correction". Do not create duplicate rows and do not change anything else in README.md.
+
 - Resulting commit link: 
 - Verification note (done by the student): 
 - Chat export / screenshot filename: 

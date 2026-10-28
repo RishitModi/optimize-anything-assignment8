@@ -4,6 +4,8 @@ Track bugs, misconceptions, hallucinations, and flawed logic introduced by AI to
 
 | Case # | Track | What the AI got wrong | How it was detected | Fix | Lesson |
 | :---: | :--- | :--- | :--- | :--- | :--- |
-| 1 | | | | | |
-| 2 | | | | | |
-| 3 | | | | | |
+| 1 | A | Test for gradient descent with lr = 1/L used the contraction rate (kappa-1)/(kappa+1), which is only correct for the optimal step 2/(L+mu). | pytest failure: observed gap 8.4e-10 versus predicted 5.9e-16. | Used rho = 1 - mu/L and also checked the empirical per-step contraction. | The AI recalls textbook formulas without checking their step-size assumptions; verify theory against the exact setting. |
+| 2 | A | Test expected RMSProp with a constant learning rate to reach f - f* < 1e-6 on a quadratic. | pytest failure: gap stayed at 1.45e-2, matching the O(lr) oscillation floor for lr = 0.05. | Per-optimizer tolerance plus a comment explaining the noise floor. | A test must encode the method's real behaviour, not an assumption that every optimizer converges exactly. |
+| 3 | A | minimize() returned max_iter history entries instead of n_iters + 1, dropping the final iterate. | pytest failure: stochastic full-batch run had 20 entries versus 19 for the GD run (off-by-one). | History now records the starting point and every executed step. | Off-by-one errors in logging code silently corrupt convergence plots; test sequence lengths explicitly. |
+| 4 | A | Analytic Hessian of the nonlinear least-squares exp-decay objective disagreed with the finite-difference Hessian in the entries involving parameter b. | pytest failure: Hessian test, e.g. entry [1,1] was 48.2 analytic versus 18.8 numeric. | Rewrote the Hessian as J^T J + sum r_i * Hess(r_i) with the exact second derivatives. | AI-derived second derivatives are error-prone; always check them against finite differences. |
+| 5 | A | Analytic logistic-regression gradient disagreed with the finite-difference gradient of its own loss in every component. | pytest failure: all 5 gradient components mismatched. | Enforced one convention (labels in {0,1}, mean loss, l2/2 regularisation) across f, grad, hess and batch gradients. | The AI can leave a loss and its gradient written under different conventions; gradient checks catch this immediately. |

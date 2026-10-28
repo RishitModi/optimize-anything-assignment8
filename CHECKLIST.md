@@ -4,28 +4,28 @@ Progress tracker across Chapter 6 optimization areas and techniques.
 
 | Chapter 6 area | Method/technique | Experiment | Code location | Result | Status |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| Foundations | ML as optimization (parameters, loss, regularization) | exp6 | tracks/track_a_continuous/exp6_backprop_mlp.py | | Code ready - results pending |
-| Foundations | Continuous vs discrete | exp1 | tracks/track_a_continuous/exp1_optimizer_comparison.py | | Code ready - results pending |
-| Foundations | Convex vs non-convex | exp2 | tracks/track_a_continuous/exp2_landscapes.py | | Code ready - results pending |
-| Foundations | Local minima / global minima / saddle points | exp2 | tracks/track_a_continuous/exp2_landscapes.py | | Code ready - results pending |
+| Foundations | ML as optimization (parameters, loss, regularization) | exp6 | tracks/track_a_continuous/exp6_backprop_mlp.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Foundations | Continuous vs discrete | exp1 | tracks/track_a_continuous/exp1_optimizer_comparison.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Foundations | Convex vs non-convex | exp2 | tracks/track_a_continuous/exp2_landscapes.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Foundations | Local minima / global minima / saddle points | exp2 | tracks/track_a_continuous/exp2_landscapes.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
 | Foundations | Basic quantum computing concepts | | | | TODO |
 | Foundations | Role of optimization in QML | | | | TODO |
-| Continuous | GD | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
-| Continuous | SGD | exp4 | tracks/track_a_continuous/exp4_stochastic_and_noise.py | | Code ready - results pending |
-| Continuous | Mini-batch SGD | exp4 | tracks/track_a_continuous/exp4_stochastic_and_noise.py | | Code ready - results pending |
-| Continuous | Momentum | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
-| Continuous | NAG | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
-| Continuous | AdaGrad | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
-| Continuous | RMSProp | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
-| Continuous | Adam | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
-| Continuous | Newton | exp5 | tracks/track_a_continuous/exp5_second_order.py | | Code ready - results pending |
-| Continuous | Gauss-Newton | exp5 | tracks/track_a_continuous/exp5_second_order.py | | Code ready - results pending |
-| Continuous | Backpropagation | exp6 | tracks/track_a_continuous/exp6_backprop_mlp.py | | Code ready - results pending |
-| Continuous | Fisher / diagonal / low-rank curvature approximations | exp5 | tracks/track_a_continuous/exp5_second_order.py | | Code ready - results pending |
-| Continuous | Hessian-vector products | exp5 | tracks/track_a_continuous/exp5_second_order.py | | Code ready - results pending |
-| Continuous | Convergence for convex / strongly convex / non-convex | exp2 | tracks/track_a_continuous/exp2_landscapes.py | | Code ready - results pending |
-| Continuous | Step-size and optimizer tuning | exp3 | tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
-| Continuous | Noisy objectives | exp4 | tracks/track_a_continuous/exp4_stochastic_and_noise.py | | Code ready - results pending |
+| Continuous | GD | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | SGD | exp4 | tracks/track_a_continuous/exp4_stochastic_and_noise.py | GD, SGD-256, SGD-32, SGD-1 valid (exp4a); Momentum and Adam stochastic rows invalid | Partial |
+| Continuous | Mini-batch SGD | exp4 | tracks/track_a_continuous/exp4_stochastic_and_noise.py | GD, SGD-256, SGD-32, SGD-1 valid (exp4a); Momentum and Adam stochastic rows invalid | Partial |
+| Continuous | Momentum | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | NAG | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | AdaGrad | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | RMSProp | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | Adam | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | Newton | exp5 | tracks/track_a_continuous/exp5_second_order.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | Gauss-Newton | exp5 | tracks/track_a_continuous/exp5_second_order.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | Backpropagation | exp6 | tracks/track_a_continuous/exp6_backprop_mlp.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | Fisher / diagonal / low-rank curvature approximations | exp5 | tracks/track_a_continuous/exp5_second_order.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | Hessian-vector products | exp5 | tracks/track_a_continuous/exp5_second_order.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | Convergence for convex / strongly convex / non-convex | exp2 | tracks/track_a_continuous/exp2_landscapes.py | qualitative final gaps and plots only; rate fit invalid, see Failure Log case 8 | Partial |
+| Continuous | Step-size and optimizer tuning | exp3 | tracks/track_a_continuous/exp3_stepsize_sensitivity.py | see results/track_a/SUMMARY.md, exp1 to exp6 | Done |
+| Continuous | Noisy objectives | exp4 | tracks/track_a_continuous/exp4_stochastic_and_noise.py | exp4b invalid, see Failure Log case 7 | Known bug - not covered |
 | Discrete | Greedy | | | | TODO |
 | Discrete | ILP | | | | TODO |
 | Discrete | Branch-and-Bound | | | | TODO |

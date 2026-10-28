@@ -1,0 +1,6 @@
+method,final_x0,final_x1,final_f,classification
+GradientDescent,3.426606593921721e-12,1.4142135623529684,-1.0,minimum
+Momentum,-1.0329364460531663e-13,1.4142135623621137,-1.0,minimum
+Adam,-3.761400584259009e-12,1.4142135623631023,-1.0,minimum
+Newton (undamped),0.0,0.0,0.0,saddle
+Newton (damped),2.7881332112144703e-11,1.4142135623784136,-1.0,minimum

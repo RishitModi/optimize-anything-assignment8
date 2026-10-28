@@ -1,0 +1,7 @@
+start,method,final_x0,final_x1,final_f,is_global_minimum
+negative_x,GradientDescent,-1.300839565948033,0.0,-3.513905038934789,True
+negative_x,Adam,-1.3008395659411762,0.0,-3.513905038934789,True
+near_zero,GradientDescent,-1.300839565935042,0.0,-3.513905038934789,True
+near_zero,Adam,-1.3008395659348562,0.0,-3.5139050389347894,True
+positive_x,GradientDescent,1.1309011226399093,0.0,-1.0702301817761535,False
+positive_x,Adam,1.1309011226243126,0.0,-1.0702301817761541,False

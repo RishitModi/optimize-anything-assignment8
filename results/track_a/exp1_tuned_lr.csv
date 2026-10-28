@@ -1,0 +1,15 @@
+problem,method,tuned_lr
+quadratic,GradientDescent,0.01
+quadratic,Momentum,0.03162277660168379
+quadratic,NAG,0.0031622776601683794
+quadratic,AdaGrad,1.0
+quadratic,RMSProp,0.00031622776601683794
+quadratic,Adam,0.1
+quadratic,Newton,N/A
+rosenbrock,GradientDescent,0.001
+rosenbrock,Momentum,0.0031622776601683794
+rosenbrock,NAG,0.001
+rosenbrock,AdaGrad,0.31622776601683794
+rosenbrock,RMSProp,0.00031622776601683794
+rosenbrock,Adam,0.00031622776601683794
+rosenbrock,Newton,N/A

@@ -4,28 +4,28 @@ Progress tracker across Chapter 6 optimization areas and techniques.
 
 | Chapter 6 area | Method/technique | Experiment | Code location | Result | Status |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| Foundations | ML as optimization (parameters, loss, regularization) | | | | TODO |
-| Foundations | Continuous vs discrete | | | | TODO |
-| Foundations | Convex vs non-convex | | | | TODO |
-| Foundations | Local minima / global minima / saddle points | | | | TODO |
+| Foundations | ML as optimization (parameters, loss, regularization) | exp6 | tracks/track_a_continuous/exp6_backprop_mlp.py | | Code ready - results pending |
+| Foundations | Continuous vs discrete | exp1 | tracks/track_a_continuous/exp1_optimizer_comparison.py | | Code ready - results pending |
+| Foundations | Convex vs non-convex | exp2 | tracks/track_a_continuous/exp2_landscapes.py | | Code ready - results pending |
+| Foundations | Local minima / global minima / saddle points | exp2 | tracks/track_a_continuous/exp2_landscapes.py | | Code ready - results pending |
 | Foundations | Basic quantum computing concepts | | | | TODO |
 | Foundations | Role of optimization in QML | | | | TODO |
-| Continuous | GD | | | | TODO |
-| Continuous | SGD | | | | TODO |
-| Continuous | Mini-batch SGD | | | | TODO |
-| Continuous | Momentum | | | | TODO |
-| Continuous | NAG | | | | TODO |
-| Continuous | AdaGrad | | | | TODO |
-| Continuous | RMSProp | | | | TODO |
-| Continuous | Adam | | | | TODO |
-| Continuous | Newton | | | | TODO |
-| Continuous | Gauss-Newton | | | | TODO |
-| Continuous | Backpropagation | | | | TODO |
-| Continuous | Fisher / diagonal / low-rank curvature approximations | | | | TODO |
-| Continuous | Hessian-vector products | | | | TODO |
-| Continuous | Convergence for convex / strongly convex / non-convex | | | | TODO |
-| Continuous | Step-size and optimizer tuning | | | | TODO |
-| Continuous | Noisy objectives | | | | TODO |
+| Continuous | GD | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
+| Continuous | SGD | exp4 | tracks/track_a_continuous/exp4_stochastic_and_noise.py | | Code ready - results pending |
+| Continuous | Mini-batch SGD | exp4 | tracks/track_a_continuous/exp4_stochastic_and_noise.py | | Code ready - results pending |
+| Continuous | Momentum | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
+| Continuous | NAG | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
+| Continuous | AdaGrad | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
+| Continuous | RMSProp | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
+| Continuous | Adam | exp1, exp3 | tracks/track_a_continuous/exp1_optimizer_comparison.py, tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
+| Continuous | Newton | exp5 | tracks/track_a_continuous/exp5_second_order.py | | Code ready - results pending |
+| Continuous | Gauss-Newton | exp5 | tracks/track_a_continuous/exp5_second_order.py | | Code ready - results pending |
+| Continuous | Backpropagation | exp6 | tracks/track_a_continuous/exp6_backprop_mlp.py | | Code ready - results pending |
+| Continuous | Fisher / diagonal / low-rank curvature approximations | exp5 | tracks/track_a_continuous/exp5_second_order.py | | Code ready - results pending |
+| Continuous | Hessian-vector products | exp5 | tracks/track_a_continuous/exp5_second_order.py | | Code ready - results pending |
+| Continuous | Convergence for convex / strongly convex / non-convex | exp2 | tracks/track_a_continuous/exp2_landscapes.py | | Code ready - results pending |
+| Continuous | Step-size and optimizer tuning | exp3 | tracks/track_a_continuous/exp3_stepsize_sensitivity.py | | Code ready - results pending |
+| Continuous | Noisy objectives | exp4 | tracks/track_a_continuous/exp4_stochastic_and_noise.py | | Code ready - results pending |
 | Discrete | Greedy | | | | TODO |
 | Discrete | ILP | | | | TODO |
 | Discrete | Branch-and-Bound | | | | TODO |

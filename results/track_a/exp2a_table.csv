@@ -1,0 +1,4 @@
+objective,convexity,expected_rate,log_gap_slope_2nd_half,final_gap
+quadratic(cond=10),strongly convex,linear,0.0,1e-16
+sum_quartic(dim=5),convex (not SC),sublinear,-0.0005446775848986683,1.2458268773706548e-06
+rosenbrock(dim=2),non-convex,none guaranteed,,0.0037609231221175142

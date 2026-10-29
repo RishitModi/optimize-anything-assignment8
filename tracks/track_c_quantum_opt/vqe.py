@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import sys
 from pathlib import Path
 from typing import Sequence
@@ -83,7 +84,7 @@ def ansatz_state(
 
         # CNOT chain
         for c in range(n - 1):
-            psi = apply_cnot(psi, control=c, target=c + 1, n)
+            psi = apply_cnot(psi, c, c + 1, n)
 
         if noise_p > 0.0 and rng is not None:
             psi = apply_depolarizing_layer(psi, noise_p, rng, n)
@@ -177,7 +178,7 @@ def build_derivative_states(
 
             # CNOT chain
             for c in range(n - 1):
-                state = apply_cnot(state, control=c, target=c + 1, n)
+                state = apply_cnot(state, c, c + 1, n)
 
         # Final RY layer
         for q in range(n):

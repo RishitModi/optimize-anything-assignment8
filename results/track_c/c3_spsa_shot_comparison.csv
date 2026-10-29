@@ -1,0 +1,3 @@
+method,shots_per_eval,final_error_mean,final_error_std
+Exact_Expectation_SPSA,exact,0.15500935837363805,0.08426474787366488
+Shot_Based_SPSA,1000,0.1253569226392063,0.08493401924520423

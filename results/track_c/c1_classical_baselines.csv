@@ -1,0 +1,5 @@
+n,optimal_cut,sa_best_cut,sa_success_rate
+4,4,4,1.0
+6,9,9,1.0
+8,10,10,1.0
+10,12,12,1.0

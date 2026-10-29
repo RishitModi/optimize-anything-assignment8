@@ -49,7 +49,7 @@ def test_qsim_dense_matrix_contract_n3() -> None:
     assert np.allclose(sim_ry, expected_ry, atol=1e-12)
 
     # 2. CNOT with control=0, target=2
-    sim_cnot = apply_cnot(state, control=0, target=2, n=n)
+    sim_cnot = apply_cnot(state, 0, 2, n)
 
     p0 = np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128)
     p1 = np.array([[0.0, 0.0], [0.0, 1.0]], dtype=np.complex128)
@@ -62,7 +62,7 @@ def test_bell_state_generation() -> None:
     """Verify that H + CNOT produces the Bell state |Phi+> with equal probabilities on |00> and |11>."""
     state = zero_state(2)
     state = apply_1q(state, H_GATE, 0, 2)
-    state = apply_cnot(state, control=0, target=1, n=2)
+    state = apply_cnot(state, 0, 1, 2)
 
     probs = np.abs(state) ** 2
     assert math.isclose(probs[0], 0.5, abs_tol=1e-12)  # |00>
@@ -188,7 +188,7 @@ def test_estimate_energy_shots_consistency() -> None:
     e_exact = expectation_pauli_hamiltonian(state, terms)
 
     n_reps = 2000
-    estimates = [estimate_energy_shots(state, terms, shots=1000, rng=rng) for _ in range(n_reps)]
+    estimates = [estimate_energy_shots(state, terms, 1000, rng) for _ in range(n_reps)]
 
     sample_mean = float(np.mean(estimates))
     std_err = float(np.std(estimates) / math.sqrt(n_reps))
@@ -203,7 +203,7 @@ def test_depolarizing_noise_zero_probability() -> None:
     raw = rng.normal(size=1 << n) + 1.0j * rng.normal(size=1 << n)
     state = raw / np.linalg.norm(raw)
 
-    noisy_state = apply_depolarizing_layer(state, p=0.0, rng=rng, n=n)
+    noisy_state = apply_depolarizing_layer(state, 0.0, rng, n)
     assert np.allclose(state, noisy_state, atol=1e-14)
 
 

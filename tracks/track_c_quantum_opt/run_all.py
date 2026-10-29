@@ -151,7 +151,7 @@ def run_experiment_c1(
 
         best_ratio_for_instance = -1.0
         for p in p_depths:
-            qaoa_res = run_qaoa(inst, p=p, n_inits=n_inits, seed=42 + n + p, maxiter=maxiter)
+            qaoa_res = run_qaoa(inst, p, n_inits, 42 + n + p, maxiter)
             runs = qaoa_res["runs"]
 
             ratios = [r["ratio"] for r in runs]
@@ -351,8 +351,9 @@ def run_experiment_c2(
             lambda th: metric_tensor(th, n, L),
             lr=lr_cand,
             n_steps=qng_steps_tune,
-            cost_per_step=qng_cost_step,
             exact_energy_fn=energy_fn,
+            reg=1e-3,
+            cost_per_step=qng_cost_step,
         )
         fin_err = hist[-1][1] - e0
         if fin_err < best_qng_err:
@@ -413,8 +414,9 @@ def run_experiment_c2(
                     lambda th: metric_tensor(th, n, L),
                     lr=best_qng_lr,
                     n_steps=steps,
-                    cost_per_step=cost_step,
                     exact_energy_fn=energy_fn,
+                    reg=1e-3,
+                    cost_per_step=cost_step,
                 )
             elif opt_name == "SPSA":
                 hist = spsa(
@@ -560,7 +562,7 @@ def run_experiment_c3(
 
         for s_count in shot_levels:
             estimates = [
-                estimate_energy_shots(ansatz_state(th, n, L), terms, shots=s_count, rng=rng_shots)
+                estimate_energy_shots(ansatz_state(th, n, L), terms, s_count, rng_shots)
                 for _ in range(n_reps)
             ]
             bias = float(np.mean(estimates) - e_exact)
@@ -625,7 +627,7 @@ def run_experiment_c3(
 
     def shot_loss(th: np.ndarray) -> float:
         psi = ansatz_state(th, n, L)
-        return estimate_energy_shots(psi, terms, shots=1000, rng=rng_spsa_eval)
+        return estimate_energy_shots(psi, terms, 1000, rng_spsa_eval)
 
     exact_spsa_hists = []
     shot_spsa_hists = []
@@ -734,7 +736,7 @@ def run_experiment_c4(
     diag = qubo_diag(inst["Q"])
     opt_energy = inst["opt_energy"]
 
-    noise_free_qaoa_state = qaoa_state(qaoa_params, diag, target_n, p=2, noise_p=0.0)
+    noise_free_qaoa_state = qaoa_state(qaoa_params, diag, target_n, 2, noise_p=0.0)
     noise_free_qaoa_exp = expectation_diag(noise_free_qaoa_state, diag)
     noise_free_ratio = approximation_ratio(noise_free_qaoa_exp, opt_energy)
 
@@ -745,7 +747,7 @@ def run_experiment_c4(
     for p_val in p_noise_levels:
         traj_ratios: list[float] = []
         for _ in range(n_trajectories):
-            noisy_psi = qaoa_state(qaoa_params, diag, target_n, p=2, noise_p=p_val, rng=rng_noise)
+            noisy_psi = qaoa_state(qaoa_params, diag, target_n, 2, noise_p=p_val, rng=rng_noise)
             exp_val = expectation_diag(noisy_psi, diag)
             traj_ratios.append(approximation_ratio(exp_val, opt_energy))
 

@@ -1,0 +1,8 @@
+partition,local_steps,method,final_acc_mean,final_acc_std,rounds_to_85,communicated_floats_to_85
+IID,1,FedAvg,0.7377777777777778,0.0010393492741038472,not reached,not reached
+IID,5,FedAvg,0.7394444444444445,0.0015713484026368086,not reached,not reached
+IID,20,FedAvg,0.7430555555555555,0.002078698548207744,not reached,not reached
+Non-IID (Label Skew alpha=0.3),1,FedAvg,0.7380555555555556,0.0015713484026367562,not reached,not reached
+Non-IID (Label Skew alpha=0.3),5,FedAvg,0.7408333333333333,0.004906533814626607,not reached,not reached
+Non-IID (Label Skew alpha=0.3),20,FedAvg,0.7408333333333333,0.001360827634879575,not reached,not reached
+Centralized,5,Centralized SGD,0.7394444444444445,0.0017123372230469353,5,0 (local)

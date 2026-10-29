@@ -56,10 +56,10 @@ python -m pytest tracks/track_c_quantum_opt/tests -q
 ```
 
 ## Results
-<!-- Experimental outcomes, comparison tables, and plots saved in results/ -->
+All tables and figures are produced by python tracks/track_c_quantum_opt/run_all.py and listed in results/track_c/SUMMARY.md. Everything is simulated with a self-written numpy statevector simulator; no real quantum hardware was used. QAOA ratio rises with depth (p = 3: 1.00, 0.92, 0.89, 0.89 for n = 4, 6, 8, 10) but does not beat the classical baselines; QNG was the most evaluation-efficient VQE optimizer; shot-noise RMSE scales as shots^-0.5; simulated depolarizing noise lowers the QAOA ratio from 0.878 to 0.771 at p = 0.05; gradient variance decays exponentially for a global cost with deep circuits (slope -0.98 per qubit) but not for a local cost with shallow circuits (-0.09).
 
 ## Correctness check
-<!-- Verification steps, assertions, unit tests, and theoretical invariants checked -->
+9 of 10 pytest tests pass (simulator against dense matrices, parameter shift against finite differences, metric against fidelity Hessian, TFIM limits, shot estimator unbiased, noise p = 0 identity); the failing test is a module-name collision (Failure Log case 11).
 
 ## Limitations
-<!-- Computational bottlenecks, approximations, assumptions, and failure modes -->
+small sizes (n <= 10 QAOA, 4-qubit VQE); QAOA runs at n = 10, p = 3 hit the 300-evaluation cap; learning-rate grids for GD and SPSA tuned at the upper edge; C4 VQE part and C3(b) are invalid or inconclusive (cases 12 and 13); the noise model is a simple depolarizing-trajectory model.

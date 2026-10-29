@@ -33,13 +33,13 @@ Progress tracker across Chapter 6 optimization areas and techniques.
 | Discrete | Feature selection | B3 | tracks/track_b_discrete/qubo.py | see results/track_b/SUMMARY.md | Done |
 | Discrete | QUBO and Ising (binary-to-spin conversion, penalty terms) | B2, B3 | tracks/track_b_discrete/qubo.py | see results/track_b/SUMMARY.md | Done |
 | Discrete | Max-Cut | B2 | tracks/track_b_discrete/qubo.py | see results/track_b/SUMMARY.md | Done |
-| Quantum optimization | QAOA | C1 | tracks/track_c_quantum_opt/qaoa.py | | Code ready - results pending |
-| Quantum optimization | VQE | C2 | tracks/track_c_quantum_opt/vqe.py | | Code ready - results pending |
-| Quantum optimization | PQCs | C2, C5 | tracks/track_c_quantum_opt/vqe.py | | Code ready - results pending |
+| Quantum optimization | QAOA | C1 | tracks/track_c_quantum_opt/qaoa.py | see results/track_c/SUMMARY.md | Done |
+| Quantum optimization | VQE | C2 | tracks/track_c_quantum_opt/vqe.py | see results/track_c/SUMMARY.md | Done |
+| Quantum optimization | PQCs | C2, C5 | tracks/track_c_quantum_opt/vqe.py | see results/track_c/SUMMARY.md | Done |
 | Quantum optimization | QNNs | Track I (variational classifier) | | | TODO |
-| Quantum optimization | Parameter-shift | C2 | tracks/track_c_quantum_opt/vqe.py | | Code ready - results pending |
-| Quantum optimization | SPSA | C2, C3 | tracks/track_c_quantum_opt/optimizers_q.py | | Code ready - results pending |
-| Quantum optimization | Quantum natural gradient | C2 | tracks/track_c_quantum_opt/optimizers_q.py | | Code ready - results pending |
+| Quantum optimization | Parameter-shift | C2 | tracks/track_c_quantum_opt/vqe.py | see results/track_c/SUMMARY.md | Done |
+| Quantum optimization | SPSA | C2, C3 | tracks/track_c_quantum_opt/optimizers_q.py | see results/track_c/SUMMARY.md | Done |
+| Quantum optimization | Quantum natural gradient | C2 | tracks/track_c_quantum_opt/optimizers_q.py | see results/track_c/SUMMARY.md | Done |
 | Quantum optimization | Deutsch-Jozsa | | | | TODO |
 | Quantum optimization | Bernstein-Vazirani | | | | TODO |
 | Quantum optimization | Grover | | | | TODO |
@@ -49,26 +49,26 @@ Progress tracker across Chapter 6 optimization areas and techniques.
 | Quantum optimization | Quantum annealing | | | | TODO |
 | Quantum optimization | Variational classifiers | | | | TODO |
 | Quantum optimization | Quantum kernels | | | | TODO |
-| Quantum optimization | Barren plateaus | C5 | tracks/track_c_quantum_opt/run_all.py | | Code ready - results pending |
-| Quantum optimization | Finite-shot cost | C3 | tracks/track_c_quantum_opt/run_all.py | | Code ready - results pending |
-| Quantum optimization | Hardware noise | C4 (simulated noise model) | tracks/track_c_quantum_opt/run_all.py | | Code ready - results pending |
-| Quantum optimization | QUBO embedding limits (Track B QUBO solved with QAOA) | C1 | tracks/track_c_quantum_opt/qaoa.py | | Code ready - results pending |
-| Submodular | Diminishing returns | | | | TODO |
-| Submodular | Assumption testing | | | | TODO |
-| Submodular | Greedy selection | | | | TODO |
-| Submodular | Approximation guarantee conditions | | | | TODO |
-| Parallel | Load balancing | | | | TODO |
-| Parallel | Makespan | | | | TODO |
-| Parallel | Work stealing | | | | TODO |
-| Parallel | Locality | | | | TODO |
-| Parallel | Synchronization | | | | TODO |
-| Parallel | Communication overhead | | | | TODO |
-| Parallel | Data / model / pipeline parallelism | | | | TODO |
-| Parallel | Speedup | | | | TODO |
-| Parallel | Parallel efficiency | | | | TODO |
-| Parallel | Amdahl | | | | TODO |
-| Parallel | Gustafson | | | | TODO |
+| Quantum optimization | Barren plateaus | C5 | tracks/track_c_quantum_opt/run_all.py | see results/track_c/SUMMARY.md | Done |
+| Quantum optimization | Finite-shot cost | C3 | tracks/track_c_quantum_opt/run_all.py | see results/track_c/SUMMARY.md | Done |
+| Quantum optimization | Hardware noise | C4 (simulated noise model) | tracks/track_c_quantum_opt/run_all.py | see results/track_c/SUMMARY.md | Done (simulated, QAOA only) |
+| Quantum optimization | QUBO embedding limits (Track B QUBO solved with QAOA) | C1 | tracks/track_c_quantum_opt/qaoa.py | see results/track_c/SUMMARY.md | Done |
+| Submodular | Diminishing returns | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | | Code ready - results pending |
+| Submodular | Assumption testing | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | | Code ready - results pending |
+| Submodular | Greedy selection | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | | Code ready - results pending |
+| Submodular | Approximation guarantee conditions | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | | Code ready - results pending |
+| Parallel | Load balancing | D2(c)(d) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Parallel | Makespan | D2(c)(d) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Parallel | Work stealing | D2(c)(d) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Parallel | Locality | D2(e)(f) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Parallel | Synchronization | D2(e)(f) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Parallel | Communication overhead | D2(e)(f) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Parallel | Data / model / pipeline parallelism | D2(f), D2(g) (simulated) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Parallel | Speedup | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Parallel | Parallel efficiency | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Parallel | Amdahl | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Parallel | Gustafson | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
 | Strategy selection | Strategy selection | | | | TODO |
-| Distributed / multi-task | FedAvg | | | | TODO |
-| Distributed / multi-task | MGDA | | | | TODO |
-| Distributed / multi-task | GradNorm | | | | TODO |
+| Distributed / multi-task | FedAvg | D3 | tracks/track_d_submodular_parallel_distributed/federated.py | | Code ready - results pending |
+| Distributed / multi-task | MGDA | D4 | tracks/track_d_submodular_parallel_distributed/multitask.py | | Code ready - results pending |
+| Distributed / multi-task | GradNorm | D4 | tracks/track_d_submodular_parallel_distributed/multitask.py | | Code ready - results pending |

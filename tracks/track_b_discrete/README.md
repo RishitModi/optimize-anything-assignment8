@@ -50,10 +50,15 @@ python -m pytest tracks/track_b_discrete/tests -q
 ```
 
 ## Results
-<!-- Experimental outcomes, comparison tables, and plots saved in results/ -->
+All tables and figures are produced by python tracks/track_b_discrete/run_all.py and listed in results/track_b/SUMMARY.md. Summary: DP, ILP, branch-and-bound and brute force returned identical optimal values on every knapsack instance; greedy was within 0.3 to 2.4 percent of optimal. For Max-Cut on 3-regular graphs (n = 6 to 16) brute force, greedy local search and simulated annealing all reached the exact optimum on every instance. For feature selection the exact QUBO optimum, greedy forward selection and simulated annealing reached 95.0 to 95.4 percent cross-validated accuracy versus 92.0 percent for random subsets.
 
 ## Correctness check
-<!-- Verification steps, assertions, unit tests, and theoretical invariants checked -->
+- 5 pytest tests pass (all exact knapsack methods agree; QUBO energy equals Ising energy equals minus cut for all assignments; feature-selection QUBO with penalty equals the direct formula for all 256 assignments).
+- In-run assertions (DP = ILP, brute force = DP, branch-and-bound = DP when proven optimal, greedy <= optimum, feasibility) reported no verification failures.
 
 ## Limitations
-<!-- Computational bottlenecks, approximations, assumptions, and failure modes -->
+- Small instance sizes (knapsack n <= 50, Max-Cut n <= 16, 12 features).
+- 5 instance seeds per size so the greedy gap trend is noisy.
+- Runtimes are single-process wall-clock times including Python overhead.
+- DP is only applicable to integer weights.
+- In the first feature-selection sweep (k = 4) the unconstrained optimum already had 4 features so the penalty was never active, which the k = 7 sweep (b3_penalty_k.py) addresses.

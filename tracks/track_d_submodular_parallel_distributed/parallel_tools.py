@@ -52,27 +52,25 @@ def burn(n_iter: int) -> int:
     return val
 
 
-def calibrate_iters_per_ms() -> int:
-    """Calibrate iterations of burn per millisecond over approximately 0.3 seconds.
+def calibrate_iters_per_ms(target_dt: float = 0.3) -> int:
+    """Calibrate iterations of burn per millisecond over approximately target_dt seconds.
 
     Returns:
         Estimated number of LCG iterations that execute in 1 ms on this system.
     """
-    n_probe = 500_000
+    n_probe = 50_000
     t0 = time.perf_counter()
     burn(n_probe)
     dt = time.perf_counter() - t0
 
-    # Scale target to ~0.3 seconds for robust calibration
-    target_dt = 0.3
-    if dt < 0.05:
+    if dt < target_dt / 2.0:
         multiplier = max(1.0, target_dt / max(dt, 1e-6))
         n_probe = int(n_probe * multiplier)
         t0 = time.perf_counter()
         burn(n_probe)
         dt = time.perf_counter() - t0
 
-    iters_per_ms = max(100, int(n_probe / (dt * 1000.0)))
+    iters_per_ms = max(100, int(n_probe / (max(dt, 1e-6) * 1000.0)))
     return iters_per_ms
 
 
@@ -90,52 +88,55 @@ def run_chunk(list_of_n_iter: list[int]) -> list[int]:
 # Scheduling Simulators
 # ---------------------------------------------------------------------------
 
-def lower_bound(durations: Sequence[float], p: int) -> float:
+def lower_bound(durations: Sequence[float] | np.ndarray, p: int) -> float:
     """Compute the theoretical makespan lower bound: max(sum(durations) / p, max(durations))."""
-    if not durations or p <= 0:
+    durations = np.asarray(durations, dtype=float)
+    if durations.size == 0 or p <= 0:
         return 0.0
-    return float(max(sum(durations) / p, max(durations)))
+    return float(max(float(np.sum(durations)) / p, float(np.max(durations))))
 
 
-def simulate_static_block(durations: Sequence[float], p: int) -> float:
+def simulate_static_block(durations: Sequence[float] | np.ndarray, p: int) -> float:
     """Simulate static block partitioning of tasks across p workers.
 
     Tasks are partitioned into contiguous blocks of size ceil(n / p).
     Worker i executes block i.
 
     Args:
-        durations: List of task durations.
+        durations: List or array of task durations.
         p: Number of parallel workers.
 
     Returns:
         Makespan (maximum completion time across workers).
     """
-    n = len(durations)
-    if n == 0 or p <= 0:
+    durations = np.asarray(durations, dtype=float)
+    if durations.size == 0 or p <= 0:
         return 0.0
+    n = durations.size
     block_size = int(math.ceil(n / p))
     worker_loads = [0.0] * p
     for w in range(p):
         start = w * block_size
         end = min(n, (w + 1) * block_size)
         if start < n:
-            worker_loads[w] = float(sum(durations[start:end]))
+            worker_loads[w] = float(np.sum(durations[start:end]))
     return float(max(worker_loads))
 
 
-def simulate_static_round_robin(durations: Sequence[float], p: int) -> float:
+def simulate_static_round_robin(durations: Sequence[float] | np.ndarray, p: int) -> float:
     """Simulate static round-robin assignment of tasks across p workers.
 
     Task j is assigned to worker (j mod p).
 
     Args:
-        durations: List of task durations.
+        durations: List or array of task durations.
         p: Number of parallel workers.
 
     Returns:
         Makespan.
     """
-    if not durations or p <= 0:
+    durations = np.asarray(durations, dtype=float)
+    if durations.size == 0 or p <= 0:
         return 0.0
     worker_loads = [0.0] * p
     for j, d in enumerate(durations):
@@ -143,20 +144,21 @@ def simulate_static_round_robin(durations: Sequence[float], p: int) -> float:
     return float(max(worker_loads))
 
 
-def simulate_list_scheduling(durations: Sequence[float], p: int) -> float:
+def simulate_list_scheduling(durations: Sequence[float] | np.ndarray, p: int) -> float:
     """Simulate online greedy list scheduling (Graham's algorithm).
 
     Tasks are considered in their given order; each task is assigned to the
     worker that becomes free earliest.
 
     Args:
-        durations: List of task durations.
+        durations: List or array of task durations.
         p: Number of parallel workers.
 
     Returns:
         Makespan.
     """
-    if not durations or p <= 0:
+    durations = np.asarray(durations, dtype=float)
+    if durations.size == 0 or p <= 0:
         return 0.0
     # Min-heap of (finish_time, worker_id)
     heap: list[tuple[float, int]] = [(0.0, i) for i in range(p)]
@@ -169,27 +171,28 @@ def simulate_list_scheduling(durations: Sequence[float], p: int) -> float:
     return float(max(t for t, _ in heap))
 
 
-def simulate_lpt(durations: Sequence[float], p: int) -> float:
+def simulate_lpt(durations: Sequence[float] | np.ndarray, p: int) -> float:
     """Simulate Longest Processing Time (LPT) scheduling.
 
     Tasks are sorted in non-increasing order of duration, then scheduled via list scheduling.
     Guarantees makespan <= (4/3 - 1/(3p)) * OPT.
 
     Args:
-        durations: List of task durations.
+        durations: List or array of task durations.
         p: Number of parallel workers.
 
     Returns:
         Makespan.
     """
-    if not durations or p <= 0:
+    durations = np.asarray(durations, dtype=float)
+    if durations.size == 0 or p <= 0:
         return 0.0
-    sorted_durations = sorted(durations, reverse=True)
+    sorted_durations = np.sort(durations)[::-1]
     return simulate_list_scheduling(sorted_durations, p)
 
 
 def simulate_work_stealing(
-    durations: Sequence[float],
+    durations: Sequence[float] | np.ndarray,
     p: int,
     steal_cost: float = 0.5,
     seed: int = 42,
@@ -202,7 +205,7 @@ def simulate_work_stealing(
     from the back of the deque of the victim with the most remaining work, paying steal_cost.
 
     Args:
-        durations: Task durations.
+        durations: List or array of task durations.
         p: Number of workers.
         steal_cost: Synchronization / transfer latency cost paid on each steal.
         seed: Random seed for tie-breaking.
@@ -210,10 +213,11 @@ def simulate_work_stealing(
     Returns:
         Makespan.
     """
-    n = len(durations)
-    if n == 0 or p <= 0:
+    durations = np.asarray(durations, dtype=float)
+    if durations.size == 0 or p <= 0:
         return 0.0
 
+    n = durations.size
     block_size = int(math.ceil(n / p))
     deques: list[collections.deque[float]] = []
     for w in range(p):

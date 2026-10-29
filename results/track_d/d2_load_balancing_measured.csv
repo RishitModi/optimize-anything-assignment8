@@ -1,0 +1,4 @@
+strategy,makespan_ms,lower_bound_ms
+Static (Chunksize N/p),311.2870999611914,199.99999999999994
+Dynamic (Chunksize 1),241.95850011892617,199.99999999999994
+Dynamic LPT (Sorted),271.13690017722547,199.99999999999994

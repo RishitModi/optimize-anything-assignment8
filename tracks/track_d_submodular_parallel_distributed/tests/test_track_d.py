@@ -24,6 +24,7 @@ from multitask import (
     solve_mgda_alpha,
 )
 from parallel_tools import (
+    grad_shard_resident,
     grad_shard_shipped,
     lower_bound,
     pipeline_makespan,
@@ -163,27 +164,38 @@ def test_data_parallel_combined_gradient() -> None:
     n_per_shard = n_samples // p
     w = np.ones(d) * 0.25
     l2_reg = 1e-3
+    seed = 42
 
+    # 1. Shipped variant: shards passed directly
     shards_X = []
     shards_y = []
-    shard_grads = []
-
+    shipped_grads = []
     for i in range(p):
-        rng = np.random.default_rng(200 + i)
+        rng = np.random.default_rng(seed + i * 1000)
         X_k = rng.normal(size=(n_per_shard, d))
         y_k = (rng.uniform(size=n_per_shard) > 0.5).astype(float)
         shards_X.append(X_k)
         shards_y.append(y_k)
         g_k = grad_shard_shipped((X_k, y_k, w, l2_reg))
-        shard_grads.append(g_k)
+        shipped_grads.append(g_k)
 
-    comb_grad = np.mean(shard_grads, axis=0)
+    comb_grad_shipped = np.mean(shipped_grads, axis=0)
 
+    # 2. Resident variant: generated inside worker routine
+    resident_grads = []
+    for i in range(p):
+        g_res = grad_shard_resident((seed, i, n_per_shard, d, w, l2_reg))
+        resident_grads.append(g_res)
+
+    comb_grad_resident = np.mean(resident_grads, axis=0)
+
+    # Single-process ground truth
     X_all = np.vstack(shards_X)
     y_all = np.concatenate(shards_y)
     single_grad = grad_shard_shipped((X_all, y_all, w, l2_reg))
 
-    assert np.allclose(comb_grad, single_grad, atol=1e-12)
+    assert np.allclose(comb_grad_shipped, single_grad, atol=1e-12)
+    assert np.allclose(comb_grad_resident, single_grad, atol=1e-12)
 
 
 def test_smoke_track_d(tmp_path: Path) -> None:

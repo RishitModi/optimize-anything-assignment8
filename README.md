@@ -165,7 +165,7 @@ All AI tool interactions used throughout the design, formulation, implementation
 
 | Tool | Model version | Tracks | Dates | Kind of work |
 | :--- | :--- | :--- | :--- | :--- |
-| Antigravity IDE | Claude Sonnet 5.5 | All (setup), A, B, C, D | 2026-10-28, 2026-10-29 | Planning, code generation, refactoring, unit-test writing (repository skeleton, templates, shared utilities in common/, Track A continuous optimization, Track B discrete optimization, Track C quantum optimization, Track D submodular, parallel and distributed optimization); debugging, test correction; experiment scripting (exp1–exp6, Track B discrete benchmarks, Track C quantum experiments C1–C5, Track D experiments D1–D4, run_all, smoke tests); documentation |
+| Antigravity IDE | Claude Sonnet 5.5 | All (setup), A, B, C, D, F | 2026-10-28, 2026-10-29 | Planning, code generation, unit-test writing, experiment scripting, documentation (repository skeleton, templates, shared utilities in common/, Track A continuous optimization, Track B discrete optimization, Track C quantum optimization, Track D submodular, parallel and distributed optimization, Track F compiler optimization); debugging, test correction; experiment scripting (exp1–exp6, Track B discrete benchmarks, Track C quantum experiments C1–C5, Track D experiments D1–D4, Track F experiments F1–F3, run_all, smoke tests) |
 | Antigravity IDE | Gemini 3.8 Flash | All Tracks | 2026-10-28 | Repository skeleton, templates, shared utilities |
 | [e.g., Claude] | [e.g., Claude 3.7 Sonnet] | [e.g., Track A, Track C] | [YYYY-MM-DD] | [e.g., Algorithm formulation, test generation] |
 | [e.g., ChatGPT] | [e.g., GPT-4o] | [e.g., Track B] | [YYYY-MM-DD] | [e.g., Debugging ILP formulations] |

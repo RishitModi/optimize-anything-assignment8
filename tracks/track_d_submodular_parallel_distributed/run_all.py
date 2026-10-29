@@ -86,6 +86,31 @@ from submodular import (
 )
 
 
+def make_spawn_pool(processes: int) -> multiprocessing.pool.Pool:
+    """Create a worker process pool using explicit 'spawn' context."""
+    return multiprocessing.get_context("spawn").Pool(processes=processes)
+
+
+def safe_pool_map(
+    pool: Any,
+    func: Any,
+    iterable: Any,
+    chunksize: int | None = None,
+    timeout: float = 180.0,
+) -> list[Any]:
+    """Execute pool.map_async with an explicit timeout, raising TimeoutError on hang."""
+    if chunksize is not None:
+        async_result = pool.map_async(func, iterable, chunksize=chunksize)
+    else:
+        async_result = pool.map_async(func, iterable)
+    try:
+        return async_result.get(timeout=timeout)
+    except multiprocessing.TimeoutError as exc:
+        raise TimeoutError(
+            f"Worker task '{getattr(func, '__name__', str(func))}' exceeded timeout of {timeout}s"
+        ) from exc
+
+
 def df_to_markdown(df: pd.DataFrame) -> str:
     """Render pandas DataFrame to Markdown table without external tabulate dependency."""
     if df.empty:
@@ -119,7 +144,6 @@ def run_experiment_d1(
 ) -> dict[str, Any]:
     """Execute D1: Maximum coverage and R^2 feature selection."""
     print("=== Running Experiment D1: Submodular Optimization ===")
-    d1_records = []
     figures: list[str] = []
 
     # (a) Maximum Coverage Benchmark
@@ -256,8 +280,8 @@ def run_experiment_d2(
     print("=== Running Experiment D2: Parallel Computing ===")
     figures: list[str] = []
 
-    # Calibrate CPU burn
-    iters_per_ms = calibrate_iters_per_ms()
+    # Calibrate CPU burn with appropriate duration
+    iters_per_ms = calibrate_iters_per_ms(target_dt=0.05 if quick else 0.3)
     print(f"Calibrated burn iterations per ms: {iters_per_ms}")
 
     # (a) Strong Scaling (Measured)
@@ -266,9 +290,7 @@ def run_experiment_d2(
     task_iters_strong = int(task_ms_strong * iters_per_ms)
 
     p_list = [1, 2, 4] if quick else [1, 2, 4, 8, 16]
-    # Restrict to system cpu count if available, but at least test p=1,2,4
     max_cores = multiprocessing.cpu_count() or 4
-    # Include up to max_cores or requested list
     p_workers = [p for p in p_list if p <= max(max_cores, 4)]
     if 1 not in p_workers:
         p_workers = [1] + p_workers
@@ -277,24 +299,20 @@ def run_experiment_d2(
     strong_rows = []
     t1_median = 0.0
 
-    # Injected serial overhead in main process: 5% of total parallel work
     serial_ratio = 0.05
     serial_iters = int(serial_ratio * n_tasks_strong * task_iters_strong)
 
     for p in p_workers:
-        # Pre-create pool and execute warm-up task to decouple spawn overhead
         t_pool_start = time.perf_counter()
-        with multiprocessing.Pool(processes=p) as pool:
-            pool.map(run_task, [1000] * p)
+        with make_spawn_pool(processes=p) as pool:
+            safe_pool_map(pool, run_task, [1000] * p, timeout=180.0)
             pool_startup_time = time.perf_counter() - t_pool_start
 
             times = []
             for _ in range(n_reps_strong):
                 t0 = time.perf_counter()
-                # Serial portion in main process
                 burn(serial_iters)
-                # Parallel tasks
-                pool.map(run_task, [task_iters_strong] * n_tasks_strong)
+                safe_pool_map(pool, run_task, [task_iters_strong] * n_tasks_strong, timeout=180.0)
                 times.append(time.perf_counter() - t0)
 
         med_time = float(np.median(times))
@@ -315,7 +333,6 @@ def run_experiment_d2(
     strong_df = pd.DataFrame(strong_rows)
     save_csv(strong_df, out_dir / "d2_strong_scaling.csv")
 
-    # Fit Amdahl's Law serial fraction: S(p) = 1 / (s + (1 - s) / p)
     def amdahl_func(p_arr, s_param):
         return 1.0 / (s_param + (1.0 - s_param) / p_arr)
 
@@ -354,18 +371,16 @@ def run_experiment_d2(
     weak_rows = []
     for p in p_workers:
         n_total_weak = tasks_per_worker * p
-        with multiprocessing.Pool(processes=p) as pool:
-            pool.map(run_task, [1000] * p)
+        with make_spawn_pool(processes=p) as pool:
+            safe_pool_map(pool, run_task, [1000] * p, timeout=180.0)
             times = []
             for _ in range(n_reps_strong):
                 t0 = time.perf_counter()
                 burn(serial_iters_weak)
-                pool.map(run_task, [task_iters_weak] * n_total_weak)
+                safe_pool_map(pool, run_task, [task_iters_weak] * n_total_weak, timeout=180.0)
                 times.append(time.perf_counter() - t0)
 
         t_measured = float(np.median(times))
-        # Estimated sequential time = serial + sum of task durations
-        # Calibrated 10ms task duration
         est_seq_time = (serial_iters_weak / (iters_per_ms * 1000.0)) + (n_total_weak * 0.010)
         scaled_speedup = est_seq_time / max(t_measured, 1e-6)
 
@@ -400,33 +415,30 @@ def run_experiment_d2(
     n_tasks_lb = 80 if quick else 300
     p_lb = 4 if quick else min(8, max_cores)
     rng_lb = np.random.default_rng(777)
-    # Lognormal durations: mean ~10 ms, sigma 1.0
     durations_ms = rng_lb.lognormal(mean=2.0, sigma=1.0, size=n_tasks_lb)
-    # Scale to mean 10 ms
     durations_ms = durations_ms * (10.0 / np.mean(durations_ms))
     task_iters_lb = [int(d * iters_per_ms) for d in durations_ms]
 
-    lb_sum_ms = sum(durations_ms)
     lb_lower = lower_bound(durations_ms, p_lb)
 
-    with multiprocessing.Pool(processes=p_lb) as pool:
-        pool.map(run_task, [1000] * p_lb)
+    with make_spawn_pool(processes=p_lb) as pool:
+        safe_pool_map(pool, run_task, [1000] * p_lb, timeout=180.0)
 
         # 1. Static block (chunksize = n / p)
         t0 = time.perf_counter()
-        pool.map(run_task, task_iters_lb, chunksize=max(1, n_tasks_lb // p_lb))
+        safe_pool_map(pool, run_task, task_iters_lb, chunksize=max(1, n_tasks_lb // p_lb), timeout=180.0)
         t_static = (time.perf_counter() - t0) * 1000.0
 
         # 2. Dynamic (chunksize = 1)
         t0 = time.perf_counter()
-        pool.map(run_task, task_iters_lb, chunksize=1)
+        safe_pool_map(pool, run_task, task_iters_lb, chunksize=1, timeout=180.0)
         t_dynamic = (time.perf_counter() - t0) * 1000.0
 
         # 3. Dynamic LPT (sorted decreasing duration)
         sorted_indices = np.argsort(durations_ms)[::-1]
         task_iters_lpt = [task_iters_lb[i] for i in sorted_indices]
         t0 = time.perf_counter()
-        pool.map(run_task, task_iters_lpt, chunksize=1)
+        safe_pool_map(pool, run_task, task_iters_lpt, chunksize=1, timeout=180.0)
         t_lpt = (time.perf_counter() - t0) * 1000.0
 
     lb_measured_rows = [
@@ -453,7 +465,6 @@ def run_experiment_d2(
                     durs = rng_sim.lognormal(2.0, 1.0, size=200)
                     durs = durs * (10.0 / np.mean(durs))
                 else:
-                    # 5% stragglers 20x longer
                     durs = rng_sim.lognormal(2.0, 0.5, size=200)
                     durs = durs * (10.0 / np.mean(durs))
                     straggler_mask = rng_sim.random(200) < 0.05
@@ -466,7 +477,6 @@ def run_experiment_d2(
                 ms_lpt = simulate_lpt(durs, p)
                 ms_ws = simulate_work_stealing(durs, p, steal_cost=0.5, seed=s_idx)
 
-                # Check invariants: makespan >= lower_bound - 1e-9
                 for name_check, ms_val in [("SB", ms_sb), ("RR", ms_rr), ("LS", ms_ls), ("LPT", ms_lpt), ("WS", ms_ws)]:
                     if ms_val < lb - 1e-9:
                         msg = f"[D2 Check Failed] {name_check} makespan {ms_val:.4f} < lower bound {lb:.4f}"
@@ -520,19 +530,18 @@ def run_experiment_d2(
     p_gran = 4 if quick else min(8, max_cores)
 
     gran_rows = []
-    # Measure sequential baseline for total work
     total_iters = int(total_work_s * 1000.0 * iters_per_ms)
     t0_seq = time.perf_counter()
     burn(total_iters)
     t_seq_gran = time.perf_counter() - t0_seq
 
-    with multiprocessing.Pool(processes=p_gran) as pool:
-        pool.map(run_task, [1000] * p_gran)
+    with make_spawn_pool(processes=p_gran) as pool:
+        safe_pool_map(pool, run_task, [1000] * p_gran, timeout=180.0)
         for t_ms in task_sizes_ms:
             t_iter = max(1, int(t_ms * iters_per_ms))
             n_t = max(1, int((total_work_s * 1000.0) / t_ms))
             t0 = time.perf_counter()
-            pool.map(run_task, [t_iter] * n_t, chunksize=1)
+            safe_pool_map(pool, run_task, [t_iter] * n_t, chunksize=1, timeout=180.0)
             t_par = time.perf_counter() - t0
             spd = t_seq_gran / max(t_par, 1e-6)
 
@@ -575,11 +584,11 @@ def run_experiment_d2(
 
         # 1. Resident variant
         resident_args = [(42, i, n_per_shard, d_dp, w_dp, l2_reg_dp) for i in range(p)]
-        with multiprocessing.Pool(processes=p) as pool:
-            pool.map(run_task, [1000] * p)
+        with make_spawn_pool(processes=p) as pool:
+            safe_pool_map(pool, run_task, [1000] * p, timeout=180.0)
             t0 = time.perf_counter()
             for _ in range(n_evals_dp):
-                res_grads = pool.map(grad_shard_resident, resident_args)
+                res_grads = safe_pool_map(pool, grad_shard_resident, resident_args, timeout=180.0)
                 comb_grad_res = np.mean(res_grads, axis=0)
             t_resident = time.perf_counter() - t0
 
@@ -592,11 +601,11 @@ def run_experiment_d2(
             shards_y.append((rng_s.uniform(size=n_per_shard) > 0.5).astype(float))
 
         shipped_args = [(shards_X[i], shards_y[i], w_dp, l2_reg_dp) for i in range(p)]
-        with multiprocessing.Pool(processes=p) as pool:
-            pool.map(run_task, [1000] * p)
+        with make_spawn_pool(processes=p) as pool:
+            safe_pool_map(pool, run_task, [1000] * p, timeout=180.0)
             t0 = time.perf_counter()
             for _ in range(n_evals_dp):
-                ship_grads = pool.map(grad_shard_shipped, shipped_args)
+                ship_grads = safe_pool_map(pool, grad_shard_shipped, shipped_args, timeout=180.0)
                 comb_grad_ship = np.mean(ship_grads, axis=0)
             t_shipped = time.perf_counter() - t0
 
@@ -649,7 +658,6 @@ def run_experiment_d2(
             seq_time = S * M * 1.0
             spd = seq_time / ms
 
-            # Invariant check: makespan == (S + M - 1) for unit stage times
             expected_ms = float(S + M - 1)
             if abs(ms - expected_ms) > 1e-9:
                 msg = f"[D2 Check Failed] Pipeline makespan {ms} != S+M-1 ({expected_ms})"
@@ -720,6 +728,7 @@ def run_experiment_d3(
 
     X_tr, y_tr, X_te, y_te = get_federated_dataset(n_samples=6000, n_features=20, n_informative=10, random_state=0)
     K = 10
+    d = X_tr.shape[1]
     rounds = 20 if quick else 100
     local_steps_list = [1, 5] if quick else [1, 5, 20]
     seeds = [42, 43] if quick else [42, 43, 44]
@@ -732,7 +741,6 @@ def run_experiment_d3(
     # Invariant check: K=1 FedAvg vs Centralized SGD equivalence
     part_k1 = [np.arange(len(y_tr))]
     res_fa_k1 = fedavg(X_tr, y_tr, X_te, y_te, part_k1, rounds=5, local_steps=1, lr=0.05, batch_size=32, seed=99)
-    # Matching centralized run with identical batches
     rng_k1 = np.random.default_rng(99)
     w_cent_check = np.zeros(X_tr.shape[1], dtype=float)
     for _ in range(5):
@@ -753,71 +761,82 @@ def run_experiment_d3(
         verification_failures.append(msg)
         print(msg)
 
-    fed_rows = []
+    # Run all configurations and collect round-by-round accuracy trajectories
+    all_configs: list[dict[str, Any]] = []
     curves_data: dict[str, list[float]] = {}
 
+    # 1. FedAvg configurations
     for part_name, parts in partitions_dict.items():
         for ls in local_steps_list:
-            acc_runs: list[float] = []
-            rounds_to_85_list: list[Any] = []
-            floats_to_85_list: list[Any] = []
-
+            seed_curves: list[list[float]] = []
             for s in seeds:
                 res = fedavg(X_tr, y_tr, X_te, y_te, parts, rounds=rounds, local_steps=ls, lr=0.1, batch_size=32, seed=s)
-                accs = res["accuracies"]
-                comm = res["communicated_floats"]
-                final_acc = accs[-1]
-                acc_runs.append(final_acc)
+                seed_curves.append(res["accuracies"])
 
-                # Store curve from first seed for plotting
-                curve_key = f"{part_name} (E={ls})"
-                if curve_key not in curves_data:
-                    curves_data[curve_key] = accs
+            mean_curve = list(np.mean(seed_curves, axis=0))
+            final_accs = [c[-1] for c in seed_curves]
 
-                # Check rounds to 0.85
-                r_85 = "not reached"
-                fl_85 = "not reached"
-                for r_idx, a in enumerate(accs):
-                    if a >= 0.85:
-                        r_85 = r_idx + 1
-                        fl_85 = comm[r_idx]
-                        break
-                rounds_to_85_list.append(r_85)
-                floats_to_85_list.append(fl_85)
+            curve_key = f"{part_name} (E={ls})"
+            curves_data[curve_key] = mean_curve
 
-            # Summarize rounds to 85
-            valid_r85 = [r for r in rounds_to_85_list if isinstance(r, int)]
-            r85_rep = f"{int(np.median(valid_r85))}" if valid_r85 else "not reached"
-            valid_fl85 = [f for f in floats_to_85_list if isinstance(f, int)]
-            fl85_rep = f"{int(np.median(valid_fl85))}" if valid_fl85 else "not reached"
-
-            fed_rows.append({
+            all_configs.append({
                 "partition": part_name,
                 "local_steps": ls,
                 "method": "FedAvg",
-                "final_acc_mean": float(np.mean(acc_runs)),
-                "final_acc_std": float(np.std(acc_runs)),
-                "rounds_to_85": r85_rep,
-                "communicated_floats_to_85": fl85_rep,
+                "final_mean_acc": float(np.mean(final_accs)),
+                "final_std_acc": float(np.std(final_accs)),
+                "mean_curve": mean_curve,
             })
 
-    # Centralized SGD baseline
-    cent_acc_runs = []
+    # 2. Centralized SGD configuration (using same test accuracy evaluation across rounds)
+    cent_seed_curves: list[list[float]] = []
     for s in seeds:
         res_c = centralized_sgd(X_tr, y_tr, X_te, y_te, rounds=rounds, local_steps=5, lr=0.1, batch_size=320, seed=s)
-        cent_acc_runs.append(res_c["accuracies"][-1])
-        if "Centralized SGD" not in curves_data:
-            curves_data["Centralized SGD"] = res_c["accuracies"]
+        cent_seed_curves.append(res_c["accuracies"])
 
-    fed_rows.append({
+    cent_mean_curve = list(np.mean(cent_seed_curves, axis=0))
+    cent_final_accs = [c[-1] for c in cent_seed_curves]
+    curves_data["Centralized SGD"] = cent_mean_curve
+
+    all_configs.append({
         "partition": "Centralized",
         "local_steps": 5,
         "method": "Centralized SGD",
-        "final_acc_mean": float(np.mean(cent_acc_runs)),
-        "final_acc_std": float(np.std(cent_acc_runs)),
-        "rounds_to_85": "5",
-        "communicated_floats_to_85": "0 (local)",
+        "final_mean_acc": float(np.mean(cent_final_accs)),
+        "final_std_acc": float(np.std(cent_final_accs)),
+        "mean_curve": cent_mean_curve,
     })
+
+    # Determine dynamic relative target: 98% of maximum achieved mean accuracy
+    max_final_mean = max(c["final_mean_acc"] for c in all_configs)
+    target = 0.98 * max_final_mean
+    print(f"D3 Target accuracy: {target:.4f} (98% of best achieved mean accuracy {max_final_mean:.4f})")
+
+    fed_rows = []
+    for conf in all_configs:
+        rounds_to_target: int | str = "not reached"
+        for r_idx, acc_val in enumerate(conf["mean_curve"]):
+            if acc_val >= target:
+                rounds_to_target = r_idx + 1  # 1-indexed round
+                break
+
+        if conf["method"] == "FedAvg":
+            if isinstance(rounds_to_target, int):
+                comm_to_target: str = str(2 * K * d * rounds_to_target)
+            else:
+                comm_to_target = "not reached"
+        else:
+            comm_to_target = "0 (no communication)"
+
+        fed_rows.append({
+            "partition": conf["partition"],
+            "local_steps": conf["local_steps"],
+            "method": conf["method"],
+            "final_acc_mean": conf["final_mean_acc"],
+            "final_acc_std": conf["final_std_acc"],
+            "rounds_to_target": str(rounds_to_target),
+            "communicated_floats_to_target": comm_to_target,
+        })
 
     fed_df = pd.DataFrame(fed_rows)
     save_csv(fed_df, out_dir / "d3_federated_benchmark.csv")
@@ -832,17 +851,19 @@ def run_experiment_d3(
         if "Label Skew" in label or "Centralized" in label:
             ax2.plot(round_axis, acc_curve, label=label, linewidth=1.5)
 
+    ax1.axhline(target, color="#7f7f7f", linestyle=":", label=f"Target ({target:.3f})")
     ax1.set_xlabel("Communication Round", fontsize=10)
     ax1.set_ylabel("Test Accuracy", fontsize=10)
     ax1.set_title("FedAvg Convergence: IID Partitioning", fontsize=11, fontweight="bold")
     ax1.grid(True, linestyle="--", alpha=0.5)
-    ax1.legend(frameon=True, fontsize=9)
+    ax1.legend(frameon=True, fontsize=8)
 
+    ax2.axhline(target, color="#7f7f7f", linestyle=":", label=f"Target ({target:.3f})")
     ax2.set_xlabel("Communication Round", fontsize=10)
     ax2.set_ylabel("Test Accuracy", fontsize=10)
     ax2.set_title("FedAvg Convergence: Dirichlet Non-IID Skew", fontsize=11, fontweight="bold")
     ax2.grid(True, linestyle="--", alpha=0.5)
-    ax2.legend(frameon=True, fontsize=9)
+    ax2.legend(frameon=True, fontsize=8)
 
     fig.tight_layout()
     p_fed = out_dir / "d3_federated_convergence.png"
@@ -852,6 +873,8 @@ def run_experiment_d3(
 
     return {
         "fed_df": fed_df,
+        "target": target,
+        "max_final_mean": max_final_mean,
         "figures": figures,
     }
 
@@ -977,9 +1000,9 @@ def run_experiment_d4(
     ax1.grid(True, which="both", linestyle="--", alpha=0.5)
     ax1.legend(frameon=True, fontsize=8)
 
-    if mgda_alphas:
+    if len(mgda_alphas) > 0:
         ax2.plot(epoch_axis, mgda_alphas, color="#1f77b4", label="MGDA alpha (Task 1 Weight)")
-    if gradnorm_w1 and gradnorm_w2:
+    if len(gradnorm_w1) > 0 and len(gradnorm_w2) > 0:
         ax2.plot(epoch_axis, gradnorm_w1, color="#2ca02c", label="GradNorm w_1 (Task 1)")
         ax2.plot(epoch_axis, gradnorm_w2, color="#d62728", label="GradNorm w_2 (Task 2)")
 
@@ -1010,6 +1033,9 @@ def write_summary(
     env_info: dict[str, Any],
     results: dict[str, Any],
     verification_failures: list[str],
+    selected_exps: list[str],
+    failed_experiments: dict[str, str],
+    is_only_mode: bool,
 ) -> Path:
     """Generate standardized results/track_d/SUMMARY.md without external tabulate dependency."""
     lines: list[str] = [
@@ -1024,22 +1050,44 @@ def write_summary(
         f"- **Logical CPU Cores**: {env_info['cpu_count']}",
         f"- **Calibrated Burn Iterations / ms**: {env_info['iters_per_ms']}",
         f"- **Execution Mode**: {'Quick Mode (<45s)' if env_info['quick'] else 'Full Mode (~5m)'}",
-        "",
-        "## Verification Invariants & Failure Log",
     ]
 
-    if verification_failures:
+    if is_only_mode:
+        lines.append(f"- **Selected Experiments**: {', '.join(selected_exps)} (filtered via --only)")
+    else:
+        lines.append(f"- **Selected Experiments**: {', '.join(selected_exps)} (all experiments)")
+
+    lines.extend([
+        "",
+        "## Verification Invariants & Failure Log",
+    ])
+
+    if len(failed_experiments) > 0:
+        names_str = ", ".join(failed_experiments.keys())
+        lines.append(f"**Experiments that failed: {names_str}**\n")
+        for exp_name, tb_text in failed_experiments.items():
+            lines.extend([
+                f"### Traceback for {exp_name}:",
+                "```text",
+                tb_text.strip(),
+                "```",
+                "",
+            ])
+
+    if len(verification_failures) > 0:
         lines.append(f"**Verification Failures Detected ({len(verification_failures)}):**")
         for fail in verification_failures:
             lines.append(f"- :x: {fail}")
-    else:
+        lines.append("")
+
+    if len(failed_experiments) == 0 and len(verification_failures) == 0:
         lines.append("- :white_check_mark: **No verification failures**. All theoretical invariants satisfied.")
+        lines.append("")
 
     # D1 Section
     if "D1" in results:
         d1 = results["D1"]
         lines.extend([
-            "",
             "---",
             "## Experiment D1: Submodular Optimization",
             "",
@@ -1063,13 +1111,13 @@ def write_summary(
             "",
             "#### Artifact Figures",
             "- `d1_coverage_scaling.png`: Greedy/exact ratio and evaluation query counts vs cardinality k.",
+            "",
         ])
 
     # D2 Section
     if "D2" in results:
         d2 = results["D2"]
         lines.extend([
-            "",
             "---",
             "## Experiment D2: Parallel Computing & Scheduling",
             "",
@@ -1111,13 +1159,13 @@ def write_summary(
             "- `d2_scheduling_simulated.png`: Makespan / lower bound ratios across load balancing schedulers.",
             "- `d2_granularity_overhead.png`: Task size vs IPC communication bottleneck.",
             "- `d2_pipeline_bubble.png`: Pipeline bubble fraction vs micro-batch count.",
+            "",
         ])
 
     # D3 Section
     if "D3" in results:
         d3 = results["D3"]
         lines.extend([
-            "",
             "---",
             "## Experiment D3: Federated Learning (FedAvg vs Centralized)",
             "",
@@ -1125,19 +1173,20 @@ def write_summary(
             "Simulates a federation of K=10 clients optimizing a regularized binary logistic regression model on 6000 samples. Evaluates FedAvg under IID and non-IID Dirichlet label skew (alpha=0.3) across varying local computation steps (E in {1, 5, 20}), benchmarking against centralized mini-batch SGD with matched sample throughput.",
             "",
             "- Sub-experiment D3: **measured on simulated clients (wall-clock algorithmic simulation)**",
+            f"- Target Accuracy for Convergence: **{d3['target']:.4f}** (defined as 98% of peak mean accuracy {d3['max_final_mean']:.4f}).",
             "",
             "#### Table D3.1: Federated Learning Convergence & Communication",
             df_to_markdown(d3["fed_df"]),
             "",
             "#### Artifact Figures",
             "- `d3_federated_convergence.png`: Test accuracy convergence curves across rounds and partitions.",
+            "",
         ])
 
     # D4 Section
     if "D4" in results:
         d4 = results["D4"]
         lines.extend([
-            "",
             "---",
             "## Experiment D4: Multi-Task Learning & Gradient Balancing",
             "",
@@ -1151,6 +1200,7 @@ def write_summary(
             "",
             "#### Artifact Figures",
             "- `d4_multitask_convergence.png`: Per-task MSE loss trajectories and dynamic weight balancing parameters.",
+            "",
         ])
 
     summary_path = out_dir / "SUMMARY.md"
@@ -1180,12 +1230,18 @@ def run_all(
     out_dir = Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    selected_exps = [e.upper() for e in only] if only else ["D1", "D2", "D3", "D4"]
+    is_only_mode = bool(only is not None and len(only) > 0)
+    selected_exps = [e.upper() for e in only] if is_only_mode else ["D1", "D2", "D3", "D4"]
     verification_failures: list[str] = []
+    failed_experiments: dict[str, str] = {}
     results: dict[str, Any] = {}
     had_error = False
 
-    iters_per_ms = calibrate_iters_per_ms()
+    # Only perform CPU burn calibration if D2 is explicitly scheduled to run
+    if "D2" in selected_exps:
+        iters_per_ms = calibrate_iters_per_ms(target_dt=0.05 if quick else 0.3)
+    else:
+        iters_per_ms = 10_000
 
     env_info = {
         "python_version": sys.version.split()[0],
@@ -1203,36 +1259,48 @@ def run_all(
             results["D1"] = run_experiment_d1(out_dir, quick, verification_failures)
         except Exception:
             had_error = True
-            print("ERROR in Experiment D1:")
-            traceback.print_exc()
+            tb_str = traceback.format_exc()
+            failed_experiments["D1"] = tb_str
+            print(f"ERROR in Experiment D1:\n{tb_str}")
 
     if "D2" in selected_exps:
         try:
             results["D2"] = run_experiment_d2(out_dir, quick, verification_failures)
         except Exception:
             had_error = True
-            print("ERROR in Experiment D2:")
-            traceback.print_exc()
+            tb_str = traceback.format_exc()
+            failed_experiments["D2"] = tb_str
+            print(f"ERROR in Experiment D2:\n{tb_str}")
 
     if "D3" in selected_exps:
         try:
             results["D3"] = run_experiment_d3(out_dir, quick, verification_failures)
         except Exception:
             had_error = True
-            print("ERROR in Experiment D3:")
-            traceback.print_exc()
+            tb_str = traceback.format_exc()
+            failed_experiments["D3"] = tb_str
+            print(f"ERROR in Experiment D3:\n{tb_str}")
 
     if "D4" in selected_exps:
         try:
             results["D4"] = run_experiment_d4(out_dir, quick, verification_failures)
         except Exception:
             had_error = True
-            print("ERROR in Experiment D4:")
-            traceback.print_exc()
+            tb_str = traceback.format_exc()
+            failed_experiments["D4"] = tb_str
+            print(f"ERROR in Experiment D4:\n{tb_str}")
 
-    write_summary(out_dir, env_info, results, verification_failures)
+    write_summary(
+        out_dir=out_dir,
+        env_info=env_info,
+        results=results,
+        verification_failures=verification_failures,
+        selected_exps=selected_exps,
+        failed_experiments=failed_experiments,
+        is_only_mode=is_only_mode,
+    )
 
-    if had_error or verification_failures:
+    if had_error or len(verification_failures) > 0:
         return 1
     return 0
 
@@ -1247,4 +1315,3 @@ if __name__ == "__main__":
 
     exit_code = run_all(quick=args.quick, only=args.only, out=args.out)
     sys.exit(exit_code)
-

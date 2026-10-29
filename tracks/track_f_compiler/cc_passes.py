@@ -61,14 +61,22 @@ def const_fold_prop(ir: list[Instruction]) -> list[Instruction]:
         new_insts: list[Instruction] = []
 
         def resolve(val: Any) -> Any:
-            # Transitive copy/constant resolution
-            while isinstance(val, str) and val in env:
-                val = env[val]
-            return val
+            # Single lookup per invariant, protected by bounded loop guard
+            if not (isinstance(val, str) and val in env):
+                return val
+            curr = val
+            limit = len(env) + 1
+            steps = 0
+            while isinstance(curr, str) and curr in env:
+                steps += 1
+                if steps > limit:
+                    raise RuntimeError("copy chain cycle")
+                curr = env[curr]
+            return curr
 
-        def invalidate(dst: str) -> None:
-            env.pop(dst, None)
-            to_remove = [k for k, v in env.items() if v == dst]
+        def invalidate(v: str) -> None:
+            env.pop(v, None)
+            to_remove = [k for k, val in env.items() if val == v]
             for k in to_remove:
                 del env[k]
 
@@ -76,10 +84,19 @@ def const_fold_prop(ir: list[Instruction]) -> list[Instruction]:
             op, dst, a, b = inst
 
             if op == "mov":
-                resolved_a = resolve(a)
+                if isinstance(a, str):
+                    src2 = env.get(a, a)
+                    src2 = resolve(src2)
+                else:
+                    src2 = a
+
                 invalidate(dst)
-                env[dst] = resolved_a
-                new_insts.append(("mov", dst, resolved_a, None))
+                if src2 == dst:
+                    # No-op self copy: record nothing in env; preserve instruction
+                    new_insts.append(("mov", dst, src2, None))
+                else:
+                    env[dst] = src2
+                    new_insts.append(("mov", dst, src2, None))
 
             elif op == "neg":
                 resolved_a = resolve(a)
@@ -323,6 +340,12 @@ def cse(ir: list[Instruction]) -> list[Instruction]:
                 new_insts.append(inst)
 
             else:
+                if dst is not None and isinstance(dst, str):
+                    for k in list(expr_table.keys()):
+                        if expr_table[k][0] == dst:
+                            del expr_table[k]
+                    var_to_vn[dst] = next_vn
+                    next_vn += 1
                 new_insts.append(inst)
 
         block.instructions = new_insts
@@ -339,8 +362,15 @@ def dce(ir: list[Instruction]) -> list[Instruction]:
     """Eliminate dead instructions, unreachable code, redundant jumps, and unused labels."""
     current_ir = list(ir)
     changed = True
+    max_iters = 10 * (len(ir) + 10)
+    iters = 0
 
     while changed:
+        iters += 1
+        if iters > max_iters:
+            raise RuntimeError(
+                f"DCE fixed-point iteration cap exceeded ({max_iters} iterations)"
+            )
         changed = False
 
         # 1. Identify referenced labels

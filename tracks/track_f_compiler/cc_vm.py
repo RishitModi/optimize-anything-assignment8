@@ -25,6 +25,7 @@ for _p in [str(_REPO_ROOT), str(_TRACK_ROOT)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from cc_ir import StepLimitExceeded
 from cc_lang import Instruction, eval_op
 
 MachineOperand = tuple[str, Any]
@@ -201,7 +202,7 @@ def run_machine(
     while pc < len(code):
         dynamic_total += 1
         if dynamic_total > step_limit:
-            raise RuntimeError(
+            raise StepLimitExceeded(
                 f"Machine step limit {step_limit} exceeded during execution"
             )
 

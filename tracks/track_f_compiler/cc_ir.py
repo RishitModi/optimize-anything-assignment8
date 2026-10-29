@@ -26,6 +26,11 @@ for _p in [str(_REPO_ROOT), str(_TRACK_ROOT)]:
 from cc_lang import Instruction, eval_op
 
 
+class StepLimitExceeded(RuntimeError):
+    """Raised when an execution exceeds the allotted dynamic step limit."""
+
+
+
 def pure(op_or_inst: str | Instruction, b: Any = None) -> bool:
     """Determine if an operation or instruction is pure (side-effect free and cannot trap).
 
@@ -185,7 +190,14 @@ def compute_liveness(blocks: list[BasicBlock]) -> None:
         b.live_out.clear()
 
     changed = True
+    max_iters = 10 * (len(blocks) + 10)
+    iters = 0
     while changed:
+        iters += 1
+        if iters > max_iters:
+            raise RuntimeError(
+                f"Liveness dataflow fixed-point iteration cap exceeded ({max_iters} iterations)"
+            )
         changed = False
         # Iterate in reverse topological/linear order for efficient backward convergence
         for b in reversed(blocks):
@@ -312,7 +324,7 @@ def run_ir(ir: list[Instruction], step_limit: int = 2_000_000) -> tuple[list[int
 
         dynamic_count += 1
         if dynamic_count > step_limit:
-            raise RuntimeError(f"Step limit {step_limit} exceeded during IR execution")
+            raise StepLimitExceeded(f"Step limit {step_limit} exceeded during IR execution")
 
         if op == "halt":
             break

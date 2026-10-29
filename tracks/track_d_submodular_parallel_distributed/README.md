@@ -55,10 +55,13 @@ python -m pytest tracks/track_d_submodular_parallel_distributed/tests -q
 ```
 
 ## Results
-<!-- Experimental outcomes, comparison tables, and plots saved in results/ -->
+Tables and figures are produced by python tracks/track_d_submodular_parallel_distributed/run_all.py (D1, D3, D4) and listed in results/track_d/SUMMARY.md. D1: greedy coverage reached 99.1 to 100 percent of the exact ILP optimum (guarantee 63.2 percent); lazy greedy needed 120 instead of 355 evaluations at k = 10; the R^2 feature objective violated submodularity (691 violating triples, worst 0.055) and greedy was suboptimal at k = 5. D3: all FedAvg settings reached 73.8 to 74.3 percent test accuracy, equal to centralized SGD (73.9 percent) within about half a point; label skew caused no measurable loss. D4: equal weights reached R^2 above 0.999 on both tasks; MGDA put all weight on the smaller-gradient task (task 2 R^2 0.923); GradNorm matched equal weighting. D2 (parallel scaling) was not completed.
 
 ## Correctness check
-<!-- Verification steps, assertions, unit tests, and theoretical invariants checked -->
+- 4 unit tests passed before the suite stalled in the work-stealing simulator (Failure Log case 16).
+- In-run checks of D1, D3 and D4 reported no failures (coverage had 0 submodularity violations, lazy greedy equalled greedy, greedy met the 1 - 1/e bound, manual multi-task gradients matched numerical gradients).
 
 ## Limitations
-<!-- Computational bottlenecks, approximations, assumptions, and failure modes -->
+- D2 not completed so no measured speedup, efficiency or overhead is reported (Failure Log cases 15 and 16).
+- The D3 rounds-to-target column was wrong and is not used (case 17).
+- Synthetic data and a convex model in D3, one toy problem in D4; the D3 and D4 results are single configurations and not generalised.

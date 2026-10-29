@@ -53,22 +53,22 @@ Progress tracker across Chapter 6 optimization areas and techniques.
 | Quantum optimization | Finite-shot cost | C3 | tracks/track_c_quantum_opt/run_all.py | see results/track_c/SUMMARY.md | Done |
 | Quantum optimization | Hardware noise | C4 (simulated noise model) | tracks/track_c_quantum_opt/run_all.py | see results/track_c/SUMMARY.md | Done (simulated, QAOA only) |
 | Quantum optimization | QUBO embedding limits (Track B QUBO solved with QAOA) | C1 | tracks/track_c_quantum_opt/qaoa.py | see results/track_c/SUMMARY.md | Done |
-| Submodular | Diminishing returns | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | | Code ready - results pending |
-| Submodular | Assumption testing | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | | Code ready - results pending |
-| Submodular | Greedy selection | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | | Code ready - results pending |
-| Submodular | Approximation guarantee conditions | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | | Code ready - results pending |
-| Parallel | Load balancing | D2(c)(d) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
-| Parallel | Makespan | D2(c)(d) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
-| Parallel | Work stealing | D2(c)(d) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
-| Parallel | Locality | D2(e)(f) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
-| Parallel | Synchronization | D2(e)(f) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
-| Parallel | Communication overhead | D2(e)(f) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
-| Parallel | Data / model / pipeline parallelism | D2(f), D2(g) (simulated) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
-| Parallel | Speedup | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
-| Parallel | Parallel efficiency | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
-| Parallel | Amdahl | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
-| Parallel | Gustafson | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | | Code ready - results pending |
+| Submodular | Diminishing returns | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | see results/track_d/SUMMARY.md (D1) | Done |
+| Submodular | Assumption testing | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | see results/track_d/SUMMARY.md (D1) | Done |
+| Submodular | Greedy selection | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | see results/track_d/SUMMARY.md (D1) | Done |
+| Submodular | Approximation guarantee conditions | D1 | tracks/track_d_submodular_parallel_distributed/submodular.py | see results/track_d/SUMMARY.md (D1) | Done |
+| Parallel | Load balancing | D2(c)(d) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
+| Parallel | Makespan | D2(c)(d) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
+| Parallel | Work stealing | D2(c)(d) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
+| Parallel | Locality | D2(e)(f) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
+| Parallel | Synchronization | D2(e)(f) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
+| Parallel | Communication overhead | D2(e)(f) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
+| Parallel | Data / model / pipeline parallelism | D2(f), D2(g) (simulated) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
+| Parallel | Speedup | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
+| Parallel | Parallel efficiency | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
+| Parallel | Amdahl | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
+| Parallel | Gustafson | D2(a)(b) | tracks/track_d_submodular_parallel_distributed/parallel_tools.py | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
 | Strategy selection | Strategy selection | | | | TODO |
-| Distributed / multi-task | FedAvg | D3 | tracks/track_d_submodular_parallel_distributed/federated.py | | Code ready - results pending |
-| Distributed / multi-task | MGDA | D4 | tracks/track_d_submodular_parallel_distributed/multitask.py | | Code ready - results pending |
-| Distributed / multi-task | GradNorm | D4 | tracks/track_d_submodular_parallel_distributed/multitask.py | | Code ready - results pending |
+| Distributed / multi-task | FedAvg | D3 | tracks/track_d_submodular_parallel_distributed/federated.py | (D3) | Done |
+| Distributed / multi-task | MGDA | D4 | tracks/track_d_submodular_parallel_distributed/multitask.py | (D4) | Done |
+| Distributed / multi-task | GradNorm | D4 | tracks/track_d_submodular_parallel_distributed/multitask.py | (D4) | Done |

@@ -35,7 +35,7 @@ import pandas as pd
 import scipy
 
 from cc_fuzz import generate as fuzz_generate
-from cc_ir import loop_depth_per_instruction, run_ir
+from cc_ir import StepLimitExceeded, loop_depth_per_instruction, run_ir
 from cc_lang import compile_to_ir, format_ir
 from cc_passes import (
     PASS_REGISTRY,
@@ -567,8 +567,16 @@ def write_summary_md(
     f3_mismatches: int,
     f3_reduction: float,
     verification_failures: list[str],
+    failed_experiments: dict[str, str] | None = None,
+    completed_experiments: set[str] | None = None,
+    interrupted: bool = False,
 ) -> None:
     """Render comprehensive markdown experimental report without interpretation."""
+    if failed_experiments is None:
+        failed_experiments = {}
+    if completed_experiments is None:
+        completed_experiments = set()
+
     md_lines: list[str] = [
         "# Track F: Compiler Optimization – Experimental Summary",
         "",
@@ -584,16 +592,28 @@ def write_summary_md(
         "## Verification Invariants & Failure Log",
     ]
 
-    if not verification_failures:
+    has_failures = bool(verification_failures) or bool(failed_experiments) or interrupted or (len(completed_experiments) < 3)
+
+    if interrupted:
+        md_lines.append("- :warning: **Execution interrupted by user (KeyboardInterrupt)**.")
+
+    if failed_experiments:
+        md_lines.append("### Experiments that failed:")
+        for exp_name, tb in failed_experiments.items():
+            md_lines.append(f"#### Experiment {exp_name}")
+            md_lines.append("```")
+            md_lines.append(tb.strip())
+            md_lines.append("```")
+
+    if verification_failures:
+        md_lines.append(f"- :x: **{len(verification_failures)} Verification Failures Detected**:")
+        for fail in verification_failures:
+            md_lines.append(f"  - `{fail}`")
+
+    if not has_failures:
         md_lines.append(
             "- :white_check_mark: **No verification failures**. All semantic, algebraic, and capacity invariants satisfied."
         )
-    else:
-        md_lines.append(
-            f"- :x: **{len(verification_failures)} Verification Failures Detected**:"
-        )
-        for fail in verification_failures:
-            md_lines.append(f"  - `{fail}`")
 
     md_lines.extend(
         [
@@ -608,14 +628,17 @@ def write_summary_md(
             "elimination (cse), dead code elimination (dce), and the complete pipeline (all).",
             "",
             "#### Table F1.1: Aggregated Optimization Pass Effects",
-            render_markdown_table(f1_summary),
+            render_markdown_table(f1_summary) if not f1_summary.empty else "*(Experiment F1 was not completed or failed)*",
             "",
             "#### Single-Pass Effectiveness Across Programs",
         ]
     )
 
-    for p, cnt in f1_impacts.items():
-        md_lines.append(f"- **{p}**: produced code changes in {cnt} of 8 benchmark programs")
+    if f1_impacts:
+        for p, cnt in f1_impacts.items():
+            md_lines.append(f"- **{p}**: produced code changes in {cnt} of 8 benchmark programs")
+    else:
+        md_lines.append("*(No pass impact data available)*")
 
     md_lines.extend(
         [
@@ -634,11 +657,11 @@ def write_summary_md(
             "and simulates dynamic loads, stores, and execution cycles.",
             "",
             "#### Table F2.1: Aggregated Register Allocation Metrics by Capacity (k) and Method",
-            render_markdown_table(f2_summary),
+            render_markdown_table(f2_summary) if not f2_summary.empty else "*(Experiment F2 was not completed or failed)*",
             "",
             "#### Exact Optimality Comparison",
-            f"- ILP strictly lower spill cost than Linear Scan: {f2_strictly_beats['linear_scan']} instances",
-            f"- ILP strictly lower spill cost than Greedy Weight: {f2_strictly_beats['greedy_weight']} instances",
+            f"- ILP strictly lower spill cost than Linear Scan: {f2_strictly_beats.get('linear_scan', 0)} instances",
+            f"- ILP strictly lower spill cost than Greedy Weight: {f2_strictly_beats.get('greedy_weight', 0)} instances",
             "",
             "#### Artifact Figures",
             "- `f2_memory_ops_vs_k.png`: Mean dynamic memory traffic (loads + stores) as a function of physical registers k.",
@@ -692,6 +715,10 @@ def main() -> int:
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     verification_failures: list[str] = []
+    failed_experiments: dict[str, str] = {}
+    completed_experiments: set[str] = set()
+    interrupted = False
+    keyboard_exc: BaseException | None = None
 
     f1_summary = pd.DataFrame()
     f1_impacts: dict[str, int] = {}
@@ -702,54 +729,80 @@ def main() -> int:
     f3_reduction = 0.0
 
     try:
-        _, f1_summary, f1_impacts = run_experiment_f1(
-            out_dir, args.quick, verification_failures
-        )
-    except Exception as e:
-        traceback.print_exc()
-        verification_failures.append(f"Experiment F1 crashed: {e}\n{traceback.format_exc()}")
+        # F1
+        try:
+            _, f1_summary, f1_impacts = run_experiment_f1(
+                out_dir, args.quick, verification_failures
+            )
+            completed_experiments.add("F1")
+        except Exception as e:
+            tb = traceback.format_exc()
+            print(f"[ERROR] Experiment F1 crashed:\n{tb}")
+            failed_experiments["F1"] = tb
+            verification_failures.append(f"Experiment F1 crashed: {e}")
 
-    try:
-        _, f2_summary, f2_strictly_beats = run_experiment_f2(
-            out_dir, args.quick, verification_failures
-        )
-    except Exception as e:
-        traceback.print_exc()
-        verification_failures.append(f"Experiment F2 crashed: {e}\n{traceback.format_exc()}")
+        # F2
+        try:
+            _, f2_summary, f2_strictly_beats = run_experiment_f2(
+                out_dir, args.quick, verification_failures
+            )
+            completed_experiments.add("F2")
+        except Exception as e:
+            tb = traceback.format_exc()
+            print(f"[ERROR] Experiment F2 crashed:\n{tb}")
+            failed_experiments["F2"] = tb
+            verification_failures.append(f"Experiment F2 crashed: {e}")
 
-    try:
-        _, f3_reduction, f3_tests, f3_mismatches = run_experiment_f3(
-            out_dir, args.quick, verification_failures
-        )
-    except Exception as e:
-        traceback.print_exc()
-        verification_failures.append(f"Experiment F3 crashed: {e}\n{traceback.format_exc()}")
+        # F3
+        try:
+            _, f3_reduction, f3_tests, f3_mismatches = run_experiment_f3(
+                out_dir, args.quick, verification_failures
+            )
+            completed_experiments.add("F3")
+        except Exception as e:
+            tb = traceback.format_exc()
+            print(f"[ERROR] Experiment F3 crashed:\n{tb}")
+            failed_experiments["F3"] = tb
+            verification_failures.append(f"Experiment F3 crashed: {e}")
 
-    try:
-        write_example_ir(out_dir)
-    except Exception as e:
-        traceback.print_exc()
-        verification_failures.append(f"Writing example_ir.txt crashed: {e}\n{traceback.format_exc()}")
+        try:
+            write_example_ir(out_dir)
+        except Exception as e:
+            tb = traceback.format_exc()
+            print(f"[ERROR] Writing example_ir.txt crashed:\n{tb}")
+            failed_experiments["example_ir"] = tb
+            verification_failures.append(f"Writing example_ir.txt crashed: {e}")
 
-    try:
-        write_summary_md(
-            out_dir,
-            args.quick,
-            f1_summary,
-            f1_impacts,
-            f2_summary,
-            f2_strictly_beats,
-            f3_tests,
-            f3_mismatches,
-            f3_reduction,
-            verification_failures,
-        )
-    except Exception as e:
-        traceback.print_exc()
-        verification_failures.append(f"Writing SUMMARY.md crashed: {e}\n{traceback.format_exc()}")
+    except KeyboardInterrupt as ki:
+        interrupted = True
+        keyboard_exc = ki
+        print("\nExecution interrupted by user (KeyboardInterrupt). Writing summary...")
+    finally:
+        try:
+            write_summary_md(
+                out_dir=out_dir,
+                quick=args.quick,
+                f1_summary=f1_summary,
+                f1_impacts=f1_impacts,
+                f2_summary=f2_summary,
+                f2_strictly_beats=f2_strictly_beats,
+                f3_tests=f3_tests,
+                f3_mismatches=f3_mismatches,
+                f3_reduction=f3_reduction,
+                verification_failures=verification_failures,
+                failed_experiments=failed_experiments,
+                completed_experiments=completed_experiments,
+                interrupted=interrupted,
+            )
+        except Exception as write_err:
+            print(f"Error writing SUMMARY.md in finally block: {write_err}")
+            traceback.print_exc()
 
-    if verification_failures:
-        print(f"\n[SUMMARY] {len(verification_failures)} verification failures encountered.")
+    if keyboard_exc is not None:
+        raise keyboard_exc
+
+    if verification_failures or failed_experiments or len(completed_experiments) < 3:
+        print(f"\n[SUMMARY] Failures encountered (verification failures: {len(verification_failures)}, failed experiments: {len(failed_experiments)}).")
         return 1
     else:
         print("\n[SUMMARY] All Track F experiments completed successfully with 0 failures.")

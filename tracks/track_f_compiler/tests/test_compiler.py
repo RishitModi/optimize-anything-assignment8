@@ -337,3 +337,31 @@ def test_smoke_run_all(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert (tmp_path / "f2_memory_ops_vs_k.png").exists()
     assert (tmp_path / "f2_spill_cost_vs_k.png").exists()
 
+
+def test_copy_cycle_programs_termination_and_correctness() -> None:
+    """Verify that copy cycles (e.g. a = b; b = a and x = x) terminate and preserve semantics."""
+    test_progs = [
+        "a = 1; b = 2; a = b; b = a; print a; print b;",
+        "x = 3; x = x; print x;",
+        "a = 5; b = a; a = b; b = a; print b;",
+    ]
+    for prog in test_progs:
+        base_ir = compile_to_ir(prog)
+        ref_out, _, _ = run_ir(base_ir, step_limit=10000)
+
+        # Each pass alone
+        for p_name, p_fn in PASS_REGISTRY.items():
+            opt_ir = p_fn(base_ir)
+            opt_out, _, _ = run_ir(opt_ir, step_limit=10000)
+            assert (
+                opt_out == ref_out
+            ), f"Pass {p_name} gave {opt_out} != {ref_out} for program: {prog}"
+
+        # All passes together
+        opt_all, _ = optimize_all(base_ir)
+        all_out, _, _ = run_ir(opt_all, step_limit=10000)
+        assert (
+            all_out == ref_out
+        ), f"Pipeline 'all' gave {all_out} != {ref_out} for program: {prog}"
+
+

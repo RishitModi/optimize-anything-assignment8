@@ -50,3 +50,7 @@ venv.bak/
 # Operating System files
 .DS_Store
 Thumbs.db
+
+# Workspace data and large databases
+work/
+

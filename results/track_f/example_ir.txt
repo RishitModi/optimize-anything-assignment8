@@ -1,0 +1,127 @@
+======================================================================
+PROGRAM: dead_code
+======================================================================
+
+[UNOPTIMIZED IR]
+
+    t0 = 100 add 200
+    unused1 = t0
+    t1 = unused1 mul 3
+    unused2 = t1
+    res = 0
+    t2 = 1 lt 2
+    jz t2, L0
+    t3 = res add 42
+    res = t3
+    t4 = 99 mul 88
+    dead_in_then = t4
+    jmp L1
+L0:
+    dead_branch = 12345
+    res = 0
+L1:
+    t5 = 10 eq 20
+    jz t5, L2
+    unreachable_then = 555
+    res = 999
+    jmp L3
+L2:
+    t6 = res add 58
+    res = t6
+L3:
+    i = 0
+    dead_accum = 0
+L4:
+    t7 = i lt 50
+    jz t7, L5
+    t8 = i mul 17
+    dead_temp = t8
+    t9 = dead_accum add dead_temp
+    dead_accum = t9
+    t10 = res add 1
+    res = t10
+    t11 = i add 1
+    i = t11
+    jmp L4
+L5:
+    print res
+    halt
+
+----------------------------------------------------------------------
+
+[OPTIMIZED IR (Pipeline 'all')]
+
+    res = 100
+    i = 0
+    dead_accum = 0
+L4:
+    t7 = i lt 50
+    jz t7, L5
+    t8 = i mul 17
+    t9 = dead_accum add t8
+    dead_accum = t9
+    t10 = res add 1
+    res = t10
+    t11 = i add 1
+    i = t11
+    jmp L4
+L5:
+    print res
+    halt
+
+
+
+======================================================================
+PROGRAM: sum_squares
+======================================================================
+
+[UNOPTIMIZED IR]
+
+    i = 1
+    total = 0
+L0:
+    t0 = i le 100
+    jz t0, L1
+    t1 = i mul i
+    t2 = 3 add 4
+    t3 = t2 mul i
+    t4 = t1 add t3
+    term = t4
+    t5 = i mul i
+    t6 = 3 add 4
+    t7 = t6 mul i
+    t8 = t5 add t7
+    redundant = t8
+    t9 = total add term
+    t10 = t9 add redundant
+    total = t10
+    t11 = i add 1
+    i = t11
+    jmp L0
+L1:
+    print total
+    halt
+
+----------------------------------------------------------------------
+
+[OPTIMIZED IR (Pipeline 'all')]
+
+    i = 1
+    total = 0
+L0:
+    t0 = i le 100
+    jz t0, L1
+    t1 = i mul i
+    t3 = 7 mul i
+    t4 = t1 add t3
+    t9 = total add t4
+    t10 = t9 add t4
+    total = t10
+    t11 = i add 1
+    i = t11
+    jmp L0
+L1:
+    print total
+    halt
+
+

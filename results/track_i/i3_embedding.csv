@@ -1,0 +1,11 @@
+n_logical,M,chain_length,physical_qubits,fits_in_2048,chip_fraction,note
+4,1,2,8,True,0.00390625,"analytic (literature formula), not measured"
+8,2,3,24,True,0.01171875,"analytic (literature formula), not measured"
+12,3,4,48,True,0.0234375,"analytic (literature formula), not measured"
+16,4,5,80,True,0.0390625,"analytic (literature formula), not measured"
+20,5,6,120,True,0.05859375,"analytic (literature formula), not measured"
+32,8,9,288,True,0.140625,"analytic (literature formula), not measured"
+48,12,13,624,True,0.3046875,"analytic (literature formula), not measured"
+64,16,17,1088,True,0.53125,"analytic (literature formula), not measured"
+65,17,18,1224,False,0.59765625,"analytic (literature formula), not measured"
+100,25,26,2600,False,1.26953125,"analytic (literature formula), not measured"

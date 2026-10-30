@@ -1,11 +1,60 @@
 # Prompt Log: Track I: Quantum Algorithms and QML
 
 ## Entry 1
-- Date: 
-- Tool and model version: 
-- Original prompt: 
-- AI response / relevant excerpt: 
-- Revised prompt (if any): 
-- Resulting commit link: 
-- Verification note (done by the student): 
-- Chat export / screenshot filename: 
+- Date: 2026-10-30
+- Tool and model version: Antigravity IDE / Claude Sonnet 5.5
+- Original prompt:
+```text
+STRICT RULES FOR THIS TASK: Do NOT run any command, script, test, python, pip, git or shell command. Do NOT create scratch or test scripts anywhere. Do NOT install anything. Use only the Python standard library, numpy, scipy, scikit-learn, matplotlib and pytest. Do NOT use pandas, torch, qiskit, pennylane or multiprocessing. Do NOT import pandas anywhere, and do not import any module of common/ that imports pandas (directly or transitively): read common/ first and, if in doubt, do not import common at all; use time.perf_counter, csv and the helpers of qi_util.py instead. Do not modify common/ or any file of other tracks. Name every module in tracks/track_i_quantum_algos_qml/ with the prefix qi_ exactly as listed (module-name collisions with other tracks broke earlier runs). All code gets type hints, docstrings and short comments explaining the logic. All randomness uses seeded np.random.default_rng. IMPORTANT: every loop whose termination depends on data must have an iteration cap, and every experiment checks a global time guard (run_all.py option --max-minutes, default 8) and stops gracefully with a "partial" note when exceeded (earlier tracks failed because of non-terminating loops).
+
+Create in tracks/track_i_quantum_algos_qml/ (each file starts with a sys.path insert of the repository root and of its own folder):
+
+1. qi_util.py: write_csv(path, rows, columns) (csv.DictWriter, creates folders), to_markdown(rows, columns, float_fmt="{:.4g}") (no external library), save_fig(fig, path) (dpi 150), and a Timer context manager.
+
+2. qi_sim.py: numpy statevector simulator written by us.
+Convention (document at the top): n qubits, state = complex128 array whose LAST axis has length 2^n; basis index bits x_0 x_1 ... x_{n-1} with qubit 0 the MOST significant bit; bit 0 is |0> with Z eigenvalue +1. All gate functions accept states of shape (2^n,) or (B, 2^n) (a batch of states).
+Provide: zero_state(n); H, X, Y, Z matrices; rx, ry, rz(theta) with R_P(theta) = exp(-i theta P / 2); apply_1q(state, U, q, n) where U has shape (2,2) or (B,2,2) (a different matrix per batch element; implement with reshape to (B, 2**q, 2, 2**(n-q-1)) and np.einsum); apply_cnot(state, c, t, n); apply_cphase(state, c, t, theta, n) (multiplies amplitudes with both bits 1 by exp(i theta)); apply_swap(state, a, b, n); apply_diag(state, diag); apply_h_all(state, n); probabilities(state); sample(state, shots, rng) via multinomial; expectation_z(state, q, n); depolarizing_layer(state, p, rng, n) (single state only: for every qubit with probability p apply a uniformly random Pauli of X, Y, Z); dense_unitary_1q(U, q, n) and dense_cnot(c, t, n) built with np.kron for tests.
+
+3. qi_algos.py: circuits written gate by gate with qi_sim (no library implementations).
+ - dj_probability_all_zero(n, f_table, noise_p=0.0, rng=None): circuit H^n, phase oracle diag (-1)^f(x), H^n; returns P(measure 0...0). Helpers: oracle tables constant0, constant1, balanced_random(n, seed), balanced_parity(n).
+ - bv_distribution(secret_bits, noise_p=0.0, rng=None): H^n, phase oracle (-1)^(s.x), H^n; returns probabilities (peak at the secret).
+ - qft(state, qubits, n, inverse=False): textbook circuit on the listed qubits (qubits[0] most significant): Hadamard then controlled-phase rotations pi/2^k, then bit-reversal swaps; inverse = reversed order with negated angles. Document that it equals F[k,j] = exp(2 pi i jk / N) / sqrt(N) i.e. state -> np.fft.ifft(state) * sqrt(N).
+ - qpe_distribution(phi, t): t counting qubits (0..t-1) in H, one eigenqubit (index t) set to |1>, controlled phase gates exp(2 pi i phi 2^(t-1-j)) from counting qubit j, inverse QFT on the counting register; returns the probability vector over the 2^t counting outcomes (marginal).
+ - shor_order_finding(N, a, t, w): registers: counting qubits 0..t-1, work register qubits t..t+w-1 initialised to the integer 1; H on counting qubits; for counting qubit j apply the controlled multiplication by a^(2^(t-1-j)) mod N on the work register, implemented as a permutation of work-register basis states y -> (y * m) mod N for y < N and identity for y >= N, applied only where counting qubit j is 1 (use reshape to (2^t, 2^w) and index gathering); then inverse QFT on the counting register; return the probability vector over counting outcomes (marginal) and the gate counts (t controlled modular multiplications, QFT gates).
+ - shor_postprocess(m, t, N, a): candidate order r from Fraction(m, 2**t).limit_denominator(N) (denominator), check pow(a, r, N) == 1, try also multiples r, 2r, 3r up to 4 multiples; return r or None; shor_factors(a, r, N): if r even and pow(a, r//2, N) != N-1 return gcd(a^(r/2) - 1, N) and gcd(a^(r/2) + 1, N) when nontrivial, else None. true_order(a, N) by brute force.
+ - grover_run(n, marked, iterations, noise_p=0.0, rng=None, record_curve=False): uniform superposition, then per iteration the oracle (diag with -1 on marked) and the diffusion operator implemented as inversion about the mean (2*mean - amplitude); optional noise: after each iteration call depolarizing_layer; returns success probability (sum of probabilities on marked states), oracle query count and the curve of success probability per iteration when asked; grover_optimal_iterations(N, M) = floor(pi/4 * sqrt(N/M)); grover_theory(N, M, k) = sin^2((2k+1) * asin(sqrt(M/N))); grover_gate_counts(n, k) = dict with oracle_calls = k, hadamards = n + 2*n*k, x_gates = 2*n*k, multi_controlled_z = 2*k (counting each n-qubit controlled-Z as ONE gate; state this in the docstring).
+ - linear_search_queries(N, target, order_seed): number of queries a classical scan in a random order needs.
+
+4. qi_anneal.py:
+ - anneal_success(diag, n, T, dt, opt_indices): quantum annealing simulation by symmetric Trotter (Strang) splitting: H(s) = -(1 - s) * sum_i X_i + s * H_P with s = t/T and H_P = diag scaled by n / (max(diag) - min(diag)) (document the scaling; time units are arbitrary); per step with s taken at the midpoint: multiply by exp(-i dt s H_P / 2), apply RX(-2 dt (1 - s)) on every qubit (this is exp(+i dt (1 - s) X)), multiply by exp(-i dt s H_P / 2); start from |+>^n; return the final probability on the optimal basis states, the final expected energy of the unscaled diag, and the norm error.
+ - load_instances(path="results/track_b/qubo_instances.json") returning dicts with n, Q (np.array), opt_energy, opt_bitstrings; qubo_diag(Q, n) energies x^T Q x for all basis states with the qubit-0-most-significant convention; optimal indices = indices with energy within 1e-9 of the minimum.
+ - chimera_clique_embedding(n_logical): standard TRIAD clique embedding on a Chimera graph, a LITERATURE FORMULA that is not re-derived or tested on hardware here: M = ceil(n / 4), chain length M + 1, physical qubits = 4 * M * (M + 1); a 16 x 16 Chimera (2048 qubits) therefore holds cliques up to n = 64 (M = 16). Return a dict and flag fits_in_2048 = (M <= 16). Mark every output of this function as "analytic (literature formula), not measured".
+
+5. qi_qml.py:
+ - Data: make_dataset(name, n=240, seed) for "moons" (noise 0.2) and "circles" (noise 0.1, factor 0.5) from scikit-learn, standardised and scaled to [-1.5, 1.5] with a fixed stratified 50/50 train/test split (seed 0).
+ - Variational classifier on 2 qubits with data re-uploading, L = 3 layers: for each layer apply RX(x_0) on qubit 0 and RX(x_1) on qubit 1 (per-sample matrices through apply_1q with a (B,2,2) U), then trainable RY(theta) and RZ(theta) on each qubit, then CNOT(0,1); P = 3 * 2 * 2 = 12 parameters. Output f(x) = <Z_0> in [-1, 1]; label y in {-1, +1}; loss mean (f - y)^2; prediction sign(f) with sign(0) = +1. Batched forward pass over the whole batch at once.
+ - param_shift_grad(params, X, y) computing the exact gradient of the loss with the parameter-shift rule: d f/d theta_i = 0.5 * (f(theta + pi/2 e_i) - f(theta - pi/2 e_i)) and d loss = mean(2 (f - y) * d f).
+ - train_classifier(dataset, seed, epochs, batch_size=20, lr=0.1): Adam implemented in this file, shuffled mini-batches with the seeded rng; returns the loss history per step, test accuracy, train accuracy, training wall time, parameter count and the number of circuit evaluations = number of steps * batch_size * (2 * P + 1) (every sample evaluation counts as one circuit run) plus the test-set size for prediction.
+ - Quantum kernel: feature map on 2 qubits repeated twice: H on both qubits, RZ(x_0) and RZ(x_1) on the qubits, CNOT(0,1), RZ((pi - x_0) * (pi - x_1)) on qubit 1, CNOT(0,1); states for all samples computed as a batch; Gram matrix K[i,j] = |<phi_i|phi_j>|^2 computed with a matrix product; exact and shot-based versions (each entry estimated with 1000 shots as Binomial(1000, K) / 1000, symmetrised, diagonal set to 1); SVC(kernel="precomputed", C=1.0). Circuit evaluations on hardware = n_train * (n_train - 1) / 2 for training plus n_train * n_test for prediction (one circuit per pair).
+ - Classical baselines on the same split: LogisticRegression (parameters = n_features + 1), SVC with rbf kernel (report number of support vectors), MLPClassifier(hidden_layer_sizes=(4,), max_iter=2000, random_state=seed) with parameters counted from the coefficient and intercept arrays.
+
+6. run_all.py: python tracks/track_i_quantum_algos_qml/run_all.py [--quick] [--out results/track_i] [--max-minutes 8] [--only I1 I2 I3 I4 I5]. Quick mode under 40 seconds; full mode about 4 minutes. Figures PNG dpi 150 with labelled axes, units, legend, title; tables CSV saved when each experiment finishes. Each experiment is wrapped in try/except Exception (traceback stored, continue) and SUMMARY.md plus all collected tables are written in a "finally:" block (also after KeyboardInterrupt, then re-raise). Exit code 1 if any experiment failed. Each experiment records invariant checks in a verification_failures list instead of crashing. The SUMMARY Verification section lists failed experiments with tracebacks, says "interrupted" or "partial" where applicable and writes "No verification failures" only if all selected experiments completed with an empty list.
+7. tests (write only, do not run): tests/conftest.py, tests/test_quantum_algos.py
+8. tracks/track_i_quantum_algos_qml/README.md
+9. CHECKLIST.md
+10. README.md
+```
+- AI response / relevant excerpt:
+Implemented complete standalone Track I architecture for Quantum Algorithms and QML:
+1. qi_util.py: Native CSV and Markdown table exporters, figure saving (dpi 150), and precision Timer context manager without external dependencies.
+2. qi_sim.py: Custom NumPy complex128 statevector simulator with MSB qubit 0 convention, batched einsum tensor contractions, Pauli/Clifford gates, CNOT, CPHASE, SWAP, Z expectations, multinomial sampling, and stochastic depolarizing channel layers.
+3. qi_algos.py: Pure gate-by-gate implementations of Deutsch-Jozsa, Bernstein-Vazirani, textbook QFT & inverse QFT, QPE, Shor's order finding (with continued fractions post-processing), and Grover search with optimal query scaling.
+4. qi_anneal.py: Second-order symmetric Strang splitting simulator for continuous transverse-field quantum annealing on Track B QUBO instances, plus analytic TRIAD Chimera clique embedding capacity models.
+5. qi_qml.py: Data re-uploading Variational Quantum Classifier with Adam optimization, exact parameter-shift gradients, exact and shot-based Quantum Kernel SVMs, and classical ML benchmarks (Logistic Regression, RBF SVM, MLP).
+6. run_all.py: Benchmark orchestrator for experiments I1-I5 with timeout guards, error isolation, CSV persistence, matplotlib visual plots, and SUMMARY.md generation.
+7. tests/conftest.py and tests/test_quantum_algos.py: Unit and integration test suite covering simulation algebra, Bell state, algorithm correctness, parameter-shift gradients, and dynamic importlib smoke test.
+8. README.md (track and repo root) and CHECKLIST.md updated with query complexities, formulation details, and 'Code ready - results pending' tracking statuses.
+- Revised prompt (if any): None
+- Resulting commit link: Pending
+- Verification note (done by the student): Inspection of gate algebra, tensor dimensions, exact parameter shift derivations, and test structure.
+- Chat export / screenshot filename: N/A

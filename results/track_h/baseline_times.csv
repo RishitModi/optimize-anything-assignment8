@@ -1,0 +1,13 @@
+query_id,query_name,baseline_time_s,result_hash
+Q1,Lineitem Shipdate 14-day Window,0.10795,7570fa93751f6504fa530854093e574dcc9986233a9f7fe048de141daa6afdf9
+Q2,Lineitem Quantity by Orderkey,0.25561,7a5328f6edb3c1d9c4aabba3bc059b8053f7daeae320179284c7b86b74c88537
+Q3,Lineitem Count by Partkey and Suppkey,0.37595,5e886a14ffec459a77157dbf8584b1c0a7ed59e7f6d3d38fce1fb0dc1fcbb7e2
+Q4,Orders Lineitem Join 6-day Window,0.048,5c4ddad73e02ffd12fbec865952b7a1887ce3d4632e42fc05224ee3364162d07
+Q5,Customer Orders Join by Segment and Nation,0.01591,723c6c7416c0ee558d1b21d1924246cf74f7d7a530375688709884edc1ddfffd
+Q6,Orders Top-10 Totalprice,0.01176,9ab08e875dc6cebcb0d48dfd968514ea892db34339d2ecffe84b299919f3dc9f
+Q7,Orders Status and 30-day Window,0.01207,d6f6a29fb52b0b4b6fa8407a858c5fbc78de51194c9c0e58f2addd1ce8ef5a1e
+Q8,Part Lineitem Join by Brand and Size,0.06369,f9ea89dca1650a1795a80983be98f72b6ee73ec887328d401dd4561376df14bf
+Q9,Supplier Lineitem Join by Nation,0.07357,29e3ea13071a068181b87ea2e17400fe28a91cc545201c5a34f45e5faaefe97d
+Q10,Orders Aggregates by Custkey,0.04513,4dc7f9782b45cc257652672353a7f5fadbdf3d74d1dc1caade2ae357b9faf7f1
+Q11,Lineitem Aggregation with Late Shipdate,0.04314,0b5f5cdddebf4efbe0df7e7eec6ad074cdaa3fdc78df070078af2ee002b9382a
+Q12,Three-Way Join Aggregated by Nation,0.02942,b90cb88aa1b21dd665b79e237941bc325c350c5491436f5d648eaef3527ea661

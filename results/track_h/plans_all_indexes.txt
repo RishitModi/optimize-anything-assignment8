@@ -1,0 +1,106 @@
+================================================================================
+Query: Q1 (Lineitem Shipdate 14-day Window)
+SQL: SELECT COUNT(*), SUM(l_extendedprice) FROM lineitem WHERE l_shipdate BETWEEN ? AND ?
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH lineitem USING INDEX I2 (l_shipdate>? AND l_shipdate<?)
+================================================================================
+
+================================================================================
+Query: Q2 (Lineitem Quantity by Orderkey)
+SQL: SELECT SUM(l_quantity) FROM lineitem WHERE l_orderkey = ?
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH lineitem USING INDEX I1 (l_orderkey=?)
+================================================================================
+
+================================================================================
+Query: Q3 (Lineitem Count by Partkey and Suppkey)
+SQL: SELECT COUNT(*) FROM lineitem WHERE l_partkey = ? AND l_suppkey = ?
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH lineitem USING COVERING INDEX I5 (l_partkey=? AND l_suppkey=?)
+================================================================================
+
+================================================================================
+Query: Q4 (Orders Lineitem Join 6-day Window)
+SQL: SELECT COUNT(*), SUM(o.o_totalprice) FROM orders o JOIN lineitem l ON l.l_orderkey = o.o_orderkey WHERE o.o_orderdate BETWEEN ? AND ?
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH o USING INDEX I8 (o_orderdate>? AND o_orderdate<?)
+SEARCH l USING COVERING INDEX I1 (l_orderkey=?)
+================================================================================
+
+================================================================================
+Query: Q5 (Customer Orders Join by Segment and Nation)
+SQL: SELECT COUNT(*) FROM customer c JOIN orders o ON o.o_custkey = c.c_custkey WHERE c.c_mktsegment = ? AND c.c_nationkey = ?
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH c USING INDEX I12 (c_mktsegment=? AND c_nationkey=?)
+SEARCH o USING COVERING INDEX I7 (o_custkey=?)
+================================================================================
+
+================================================================================
+Query: Q6 (Orders Top-10 Totalprice)
+SQL: SELECT o_orderkey, o_totalprice FROM orders ORDER BY o_totalprice DESC, o_orderkey LIMIT 10
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SCAN orders USING INDEX I9
+USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+================================================================================
+
+================================================================================
+Query: Q7 (Orders Status and 30-day Window)
+SQL: SELECT COUNT(*) FROM orders WHERE o_orderstatus = ? AND o_orderdate BETWEEN ? AND ?
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH orders USING COVERING INDEX I10 (o_orderstatus=? AND o_orderdate>? AND o_orderdate<?)
+================================================================================
+
+================================================================================
+Query: Q8 (Part Lineitem Join by Brand and Size)
+SQL: SELECT SUM(l.l_extendedprice) FROM part p JOIN lineitem l ON l.l_partkey = p.p_partkey WHERE p.p_brand = ? AND p.p_size = ?
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH p USING INDEX I14 (p_brand=? AND p_size=?)
+SEARCH l USING INDEX I3 (l_partkey=?)
+================================================================================
+
+================================================================================
+Query: Q9 (Supplier Lineitem Join by Nation)
+SQL: SELECT COUNT(*) FROM supplier s JOIN lineitem l ON l.l_suppkey = s.s_suppkey WHERE s.s_nationkey = ?
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH s USING INDEX I16 (s_nationkey=?)
+SEARCH l USING COVERING INDEX I4 (l_suppkey=?)
+================================================================================
+
+================================================================================
+Query: Q10 (Orders Aggregates by Custkey)
+SQL: SELECT COUNT(*), SUM(o_totalprice) FROM orders WHERE o_custkey = ?
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH orders USING INDEX I7 (o_custkey=?)
+================================================================================
+
+================================================================================
+Query: Q11 (Lineitem Aggregation with Late Shipdate)
+SQL: SELECT l_returnflag, COUNT(*), SUM(l_quantity) FROM lineitem WHERE l_shipdate >= ? GROUP BY l_returnflag ORDER BY l_returnflag
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH lineitem USING INDEX I2 (l_shipdate>?)
+USE TEMP B-TREE FOR GROUP BY
+================================================================================
+
+================================================================================
+Query: Q12 (Three-Way Join Aggregated by Nation)
+SQL: SELECT n.n_name, COUNT(*) FROM customer c JOIN orders o ON o.o_custkey = c.c_custkey JOIN nation n ON n.n_nationkey = c.c_nationkey WHERE o.o_orderdate BETWEEN ? AND ? GROUP BY n.n_name ORDER BY n.n_name
+----------------------------------------
+EXPLAIN QUERY PLAN:
+SEARCH o USING INDEX I8 (o_orderdate>? AND o_orderdate<?)
+SEARCH c USING INDEX I11 (c_custkey=?)
+BLOOM FILTER ON n (n_nationkey=?)
+SEARCH n USING AUTOMATIC COVERING INDEX (n_nationkey=?)
+USE TEMP B-TREE FOR GROUP BY
+================================================================================
+

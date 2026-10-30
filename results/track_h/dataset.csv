@@ -1,0 +1,7 @@
+table_name,row_count,database_size_bytes,sqlite_version,scale_factor,seed
+customer,7500,11579392,3.53.4,0.05,42
+orders,75000,11579392,3.53.4,0.05,42
+lineitem,299180,11579392,3.53.4,0.05,42
+part,10000,11579392,3.53.4,0.05,42
+supplier,500,11579392,3.53.4,0.05,42
+nation,25,11579392,3.53.4,0.05,42

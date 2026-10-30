@@ -1,0 +1,17 @@
+id,table,columns,size_bytes,build_time_s
+I1,lineitem,l_orderkey,3452928,0.0814
+I2,lineitem,l_shipdate,3268608,0.1164
+I3,lineitem,l_partkey,3272704,0.1156
+I4,lineitem,l_suppkey,3203072,0.1064
+I5,lineitem,"l_partkey, l_suppkey",4104192,0.151
+I6,orders,o_orderkey,839680,0.0212
+I7,orders,o_custkey,798720,0.027
+I8,orders,o_orderdate,794624,0.0249
+I9,orders,o_totalprice,933888,0.0332
+I10,orders,"o_orderstatus, o_orderdate",946176,0.0433
+I11,customer,c_custkey,81920,0.0044
+I12,customer,"c_mktsegment, c_nationkey",147456,0.0067
+I13,part,p_partkey,106496,0.0054
+I14,part,"p_brand, p_size",184320,0.0081
+I15,supplier,s_suppkey,12288,0.0051
+I16,supplier,s_nationkey,12288,0.0054

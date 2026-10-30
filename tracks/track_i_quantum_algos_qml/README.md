@@ -49,10 +49,25 @@ python -m pytest tracks/track_i_quantum_algos_qml/tests -q
 ```
 
 ## Results
-<!-- Experimental outcomes, comparison tables, and plots saved in results/ -->
+All tables and figures are produced by python tracks/track_i_quantum_algos_qml/run_all.py and listed in results/track_i/SUMMARY.md. Everything is simulated on a self-written gate-level simulator; no real quantum hardware was used. Deutsch-Jozsa and Bernstein-Vazirani used 1 query in all cases; QFT matches the DFT to 3e-16; QPE error stays below 2^-(t+1); Shor's order finding succeeded in 50 to 82 percent of runs for N = 15 and 21 except for orders where no factor can be derived; Grover needs up to 80 times fewer queries than linear search at N = 16384 but more gates than classical comparisons up to n = 12 and its simulation is 8 to 15 times slower in wall-clock time; annealing needs a longer time T as n grows (success at least 0.9 at T = 20 for n up to 8 and T = 50 for n = 10); depolarizing noise lowers Grover success from 0.997 to 0.59 at 2 percent per gate; QML: the RBF SVM was the most accurate model (0.942 on moons, 0.992 on circles), the variational classifier reached 0.925 and 0.968 at about 1100 times the training time, so no quantum advantage was found.
 
 ## Correctness check
-<!-- Verification steps, assertions, unit tests, and theoretical invariants checked -->
+- 12 of 13 pytest tests passed before the test fix (the failing one was a wrong test assertion, Failure Log case 22).
+- QFT equals the DFT matrix.
+- DJ and BV decisions correct in all cases.
+- Grover simulated probability equals the closed-form sin^2((2k+1) theta) (checked in the run).
+- QPE best-outcome probability at least 4/pi^2.
+- Parameter-shift gradient equals finite differences.
+- Kernel matrix symmetric with unit diagonal.
+- Norm preserved in annealing to 1e-14.
+- Shor's recovered orders match brute-force orders.
 
 ## Limitations
-<!-- Computational bottlenecks, approximations, assumptions, and failure modes -->
+- Experiments were merged into five (I1 to I5) and some specified items are missing (Failure Log case 23: one QPE phase, Shor only N = 15 and 21, no classical SA baseline in I3, no comparison table in the run).
+- QML models were evaluated on a single split with 120 test samples (about 3 points of sampling error) and the MLP has 17 parameters and did not converge.
+- Shor is oracle-level (no modular-arithmetic gate counts).
+- Grover gate counts treat a multi-controlled gate as one gate.
+- Classical scan times appear to use a compiled built-in.
+- The embedding table is an analytic formula, not computed on hardware.
+- The Deutsch-Jozsa noise column (0 at all noise levels) is not interpreted.
+- The noise model is a simple depolarizing-trajectory model.

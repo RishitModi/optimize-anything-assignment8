@@ -233,7 +233,10 @@ def test_chimera_clique_embedding() -> None:
     fit_65 = chimera_clique_embedding(65)
     assert fit_65["fits_in_2048"] is False
     assert fit_65["M"] == 17
-    assert fit_65["physical_qubits"] > 2048
+    # n = 65 needs a 17 x 17 Chimera grid, which does not fit the 16 x 16 grid of a 2048-qubit chip, although 1224 < 2048; the capacity limit is the grid size, not the qubit count
+    assert fit_65["physical_qubits"] == 4 * 17 * 18
+    assert chimera_clique_embedding(100)["physical_qubits"] == 4 * 25 * 26
+    assert chimera_clique_embedding(100)["fits_in_2048"] is False
 
 
 def test_qml_parameter_shift_gradient() -> None:

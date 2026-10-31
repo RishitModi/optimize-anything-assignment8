@@ -83,5 +83,5 @@ Progress tracker across Chapter 6 optimization areas and techniques.
 | G | xv6 operating system | tracks/track_g_xv6/ | see results/track_g/ and tracks/track_g_xv6/patches/lottery_scheduler.diff | Done |
 | H | DBMS index selection | tracks/track_h_dbms/ | see results/track_h/SUMMARY.md | Done |
 | I | quantum algorithms and QML | tracks/track_i_quantum_algos_qml/ | see results/track_i/SUMMARY.md | Done |
-| J | software-engineering optimisation | tracks/track_j_software_eng/ | | TODO |
+| J | software-engineering optimisation | tracks/track_j_software_eng/ | | Code ready - results pending |
 

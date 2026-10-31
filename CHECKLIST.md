@@ -80,7 +80,7 @@ Progress tracker across Chapter 6 optimization areas and techniques.
 | D2 | measured parallel scaling, load balancing, data/pipeline parallelism | tracks/track_d_submodular_parallel_distributed/ | code written, not run: simulator loop hang, Failure Log case 16 | Not completed |
 | E | main case study | tracks/track_e_case_study/ | | TODO |
 | F | compiler optimisation | tracks/track_f_compiler/ | see results/track_f/SUMMARY.md | Done |
-| G | xv6 operating system | tracks/track_g_xv6/ | | Code ready - results pending |
+| G | xv6 operating system | tracks/track_g_xv6/ | see results/track_g/ and tracks/track_g_xv6/patches/lottery_scheduler.diff | Done |
 | H | DBMS index selection | tracks/track_h_dbms/ | see results/track_h/SUMMARY.md | Done |
 | I | quantum algorithms and QML | tracks/track_i_quantum_algos_qml/ | see results/track_i/SUMMARY.md | Done |
 | J | software-engineering optimisation | tracks/track_j_software_eng/ | | TODO |

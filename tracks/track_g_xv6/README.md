@@ -33,10 +33,17 @@ Measure whether a lottery scheduler gives proportional CPU shares and lower inte
 See [scripts/README_RUN.md](scripts/README_RUN.md) for full instructions on building, running benchmarks, running tests in QEMU, and creating diff patches.
 
 ## Results
-<!-- Experimental outcomes, comparison tables, and plots saved in results/ -->
+Raw outputs are in results/track_g/ (benchrun_output.txt, lotterytest_output.txt, usertests_rr.txt, usertests_lottery.txt, diffstat.txt); the patch is patches/lottery_scheduler.diff. QEMU with CPUS=1, 3 repetitions per workload and policy, a tick is one timer quantum. W1 proportional share (tickets 30/20/10, 300 ticks): round robin gave 100/100/100 quanta (error 166 per mille); lottery gave on average 152.7/108.3/44.7 (shares 49.9, 35.4, 14.6 percent versus targets 50.0, 33.3, 16.7) with a mean error of 43 per mille (74 percent lower). W2 equal tickets, fixed work: makespan 13.3 ticks (round robin) versus 13.7 (lottery), within run-to-run variation; completion-time spread 2.0 versus 4.3 ticks. W3 interactive latency: average 1.00 tick (round robin) versus 0.29 (lottery), worst case 1 versus 2 ticks.
 
 ## Correctness check
-<!-- Verification steps, assertions, unit tests, and theoretical invariants checked -->
+- The modified kernel boots.
+- `lotterytest` passes all four checks (argument validation, policy switching, `getpinfo`, 100-versus-1 ticket proportional share).
+- `usertests` passes under round robin (policy 0) and under lottery (policy 1) (see the two usertests files).
+- The policy 0 code path is the original scheduler with an added counter.
 
 ## Limitations
-<!-- Computational bottlenecks, approximations, assumptions, and failure modes -->
+- One kernel feature only.
+- Single CPU (CPUS=1), the multi-CPU case under `ptable.lock` was not tested.
+- 3 repetitions and a coarse tick (about 10 ms nominal, not calibrated).
+- The W2 workload was much shorter than designed (Failure Log case 24).
+- Lottery scheduling gives proportional shares only on average and has a worse worst-case latency than round robin.
